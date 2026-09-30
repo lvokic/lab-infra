@@ -1,0 +1,17 @@
+/build/
+/build-*/
+/.cache/
+.DS_Store
+
+# CMake in-source build artifacts
+/CMakeFiles/
+/CMakeCache.txt
+/CTestTestfile.cmake
+/Makefile
+/cmake_install.cmake
+/compile_commands.json
+/Testing/
+/build.ninja
+/rules.ninja
+/.ninja_log
+/.ninja_deps

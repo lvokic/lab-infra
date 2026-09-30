@@ -1,0 +1,31 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug a systems experiment (LLDB)",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/debug/${input:labTarget}",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "CMake: Build Debug",
+      "stopOnEntry": false
+    }
+  ],
+  "inputs": [
+    {
+      "id": "labTarget",
+      "type": "pickString",
+      "description": "Choose the experiment to debug",
+      "options": [
+        "scratch",
+        "object_model",
+        "unique_ownership",
+        "vector_lifetime",
+        "cv_handshake",
+        "stream_io"
+      ],
+      "default": "scratch"
+    }
+  ]
+}
