@@ -3,6 +3,9 @@
 #include <stdexcept>
 #include <type_traits>
 #include <utility>
+#include <atomic>
+#include <thread>
+#include <vector>
 
 void require(bool condition, const char* message) {
   if (!condition) {
@@ -158,4 +161,79 @@ int main() {
   }
   require(SharedProbe::alive == 0, "copy-assigned owners destroy their object at final release");
   require(SharedProbe::destroyed == 5, "copy-assigned object is destroyed exactly once");
+
+  {
+    auto owner = SharedPtr<SharedProbe>::make(90);
+    WeakPtr<SharedProbe> observer(owner);
+    require(!observer.expired(), "WeakPtr observes a live object");
+    require(observer.use_count() == 1, "WeakPtr does not increase the strong count");
+
+    {
+      auto locked = observer.lock();
+      require(is_truthy(locked), "lock obtains a SharedPtr while the object is alive");
+      require(locked.get()->value == 90, "lock returns access to the original object");
+      require(owner.use_count() == 2, "lock adds exactly one strong owner");
+    }
+    require(owner.use_count() == 1, "destroying the locked owner releases its strong count");
+
+    owner = SharedPtr<SharedProbe>{};
+    require(observer.expired(), "WeakPtr expires after the last SharedPtr is released");
+    require(!is_truthy(observer.lock()), "lock returns empty after object destruction");
+    require(SharedProbe::alive == 0, "expired observer does not keep the object alive");
+    require(SharedProbe::destroyed == 6, "object is destroyed when strong count reaches zero");
+  }
+
+  const int destroyed_before_race = SharedProbe::destroyed;
+  {
+    constexpr int worker_count = 4;
+    constexpr int attempts_after_release = 1000;
+    auto owner = SharedPtr<SharedProbe>::make(1234);
+    WeakPtr<SharedProbe> observer(owner);
+    std::atomic<int> ready{0};
+    std::atomic<int> successful_locks{0};
+    std::atomic<int> invalid_values{0};
+    std::atomic<bool> start{false};
+    std::atomic<bool> owner_released{false};
+    std::vector<std::thread> workers;
+    workers.reserve(worker_count);
+
+    auto try_lock_and_check = [&] {
+      auto locked = observer.lock();
+      if (locked) {
+        if (locked.get()->value != 1234) {
+          invalid_values.fetch_add(1);
+        }
+        successful_locks.fetch_add(1);
+      }
+    };
+
+    for (int i = 0; i < worker_count; ++i) {
+      workers.emplace_back([&] {
+        ready.fetch_add(1);
+        while (!start.load()) std::this_thread::yield();
+        while (!owner_released.load()) {
+          try_lock_and_check();
+          std::this_thread::yield();
+        }
+        for (int j = 0; j < attempts_after_release; ++j) {
+          try_lock_and_check();
+        }
+      });
+    }
+
+    while (ready.load() != worker_count) std::this_thread::yield();
+    start.store(true);
+    while (successful_locks.load() < worker_count) std::this_thread::yield();
+
+    owner = SharedPtr<SharedProbe>{};
+    owner_released.store(true);
+    for (auto& worker : workers) worker.join();
+
+    require(invalid_values.load() == 0, "concurrent lock never accesses an invalid object");
+    require(observer.expired(), "observer expires after the last shared owner is released");
+    require(!observer.lock(), "concurrent lock cannot resurrect an expired object");
+    require(SharedProbe::alive == 0, "racing locks do not keep the object alive");
+  }
+  require(SharedProbe::destroyed == destroyed_before_race + 1,
+          "racing locks still destroy the object exactly once");
 }
