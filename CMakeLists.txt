@@ -38,6 +38,11 @@ endfunction()
 
 add_observation(object_model labs/01_object_model/observe.cpp cpp)
 add_observation(vector_lifetime labs/03_vector/observe.cpp cpp)
+add_test(NAME vector_capacity COMMAND vector_lifetime --experiment-b)
+set_tests_properties(vector_capacity PROPERTIES TIMEOUT 10 LABELS cpp)
+add_observation(vector_iterators labs/03_vector/iterators.cpp cpp)
+add_executable(mini_vector labs/03_vector/mini_vector.cpp)
+target_link_libraries(mini_vector PRIVATE lab_options Threads::Threads)
 add_observation(cv_handshake labs/05_mutex_cv/observe.cpp concurrency)
 add_observation(stream_io labs/11_stream_framing/observe.cpp network)
 
