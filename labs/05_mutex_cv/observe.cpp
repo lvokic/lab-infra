@@ -15,7 +15,9 @@ int main() {
 
   std::thread reader([&] {
     std::unique_lock lock(mutex);
-    const bool signaled = condition.wait_for(lock, std::chrono::seconds(2), [&] { return ready; });
+    const bool signaled = condition.wait_for(lock, std::chrono::seconds(2), [&] {
+      return ready;
+    });
     timed_out = !signaled;
     if (signaled) {
       observed = payload;

@@ -35,7 +35,10 @@ struct SharedProbe {
   static inline int alive = 0;
   static inline int destroyed = 0;
 
-  explicit SharedProbe(int v) : value(v) { ++alive; }
+  explicit SharedProbe(int v) : value(v) {
+    ++alive;
+  }
+
   ~SharedProbe() {
     --alive;
     ++destroyed;
@@ -57,10 +60,9 @@ int main() {
   static_assert(!std::is_copy_assignable_v<UniquePtr<Probe>>);
   static_assert(std::is_move_constructible_v<UniquePtr<Probe>>);
   static_assert(std::is_move_assignable_v<UniquePtr<Probe>>);
-  static_assert(std::is_same_v<
-                decltype(std::declval<UniquePtr<Probe>&>() =
-                         std::declval<UniquePtr<Probe>&&>()),
-                UniquePtr<Probe>&>);
+  static_assert(std::is_same_v<decltype(std::declval<UniquePtr<Probe>&>() =
+                                            std::declval<UniquePtr<Probe>&&>()),
+                               UniquePtr<Probe>&>);
 
   require(Probe::alive == 0, "Probe starts with no live instances");
   require(Probe::constructed == 0, "Probe construction count starts at zero");
@@ -210,7 +212,8 @@ int main() {
     for (int i = 0; i < worker_count; ++i) {
       workers.emplace_back([&] {
         ready.fetch_add(1);
-        while (!start.load()) std::this_thread::yield();
+        while (!start.load())
+          std::this_thread::yield();
         while (!owner_released.load()) {
           try_lock_and_check();
           std::this_thread::yield();
@@ -221,13 +224,16 @@ int main() {
       });
     }
 
-    while (ready.load() != worker_count) std::this_thread::yield();
+    while (ready.load() != worker_count)
+      std::this_thread::yield();
     start.store(true);
-    while (successful_locks.load() < worker_count) std::this_thread::yield();
+    while (successful_locks.load() < worker_count)
+      std::this_thread::yield();
 
     owner = SharedPtr<SharedProbe>{};
     owner_released.store(true);
-    for (auto& worker : workers) worker.join();
+    for (auto& worker : workers)
+      worker.join();
 
     require(invalid_values.load() == 0, "concurrent lock never accesses an invalid object");
     require(observer.expired(), "observer expires after the last shared owner is released");

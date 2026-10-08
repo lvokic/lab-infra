@@ -9,13 +9,23 @@
 #include <unistd.h>
 
 class FileDescriptor {
- public:
+public:
   explicit FileDescriptor(int descriptor) : descriptor_(descriptor) {}
+
   FileDescriptor(const FileDescriptor&) = delete;
   FileDescriptor& operator=(const FileDescriptor&) = delete;
-  ~FileDescriptor() { if (descriptor_ >= 0) { ::close(descriptor_); } }
-  int get() const { return descriptor_; }
- private:
+
+  ~FileDescriptor() {
+    if (descriptor_ >= 0) {
+      ::close(descriptor_);
+    }
+  }
+
+  int get() const {
+    return descriptor_;
+  }
+
+private:
   int descriptor_;
 };
 
@@ -23,8 +33,12 @@ void send_all(int descriptor, const char* bytes, std::size_t count) {
   std::size_t offset = 0;
   while (offset < count) {
     const auto sent = ::send(descriptor, bytes + offset, count - offset, 0);
-    if (sent < 0 && errno == EINTR) { continue; }
-    if (sent <= 0) { throw std::runtime_error("send failed"); }
+    if (sent < 0 && errno == EINTR) {
+      continue;
+    }
+    if (sent <= 0) {
+      throw std::runtime_error("send failed");
+    }
     offset += static_cast<std::size_t>(sent);
   }
 }
@@ -43,9 +57,15 @@ int main() {
   std::array<char, 3> chunk;
   for (;;) {
     const auto count = ::recv(reader.get(), chunk.data(), chunk.size(), 0);
-    if (count < 0 && errno == EINTR) { continue; }
-    if (count < 0) { throw std::runtime_error("recv failed"); }
-    if (count == 0) { break; }
+    if (count < 0 && errno == EINTR) {
+      continue;
+    }
+    if (count < 0) {
+      throw std::runtime_error("recv failed");
+    }
+    if (count == 0) {
+      break;
+    }
     std::cout << "recv bytes=" << count << '\n';
     received.append(chunk.data(), static_cast<std::size_t>(count));
   }

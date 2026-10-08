@@ -43,6 +43,19 @@ set_tests_properties(vector_capacity PROPERTIES TIMEOUT 10 LABELS cpp)
 add_observation(vector_iterators labs/03_vector/iterators.cpp cpp)
 add_executable(mini_vector labs/03_vector/mini_vector.cpp)
 target_link_libraries(mini_vector PRIVATE lab_options Threads::Threads)
+add_observation(container_observe labs/04_containers/observe.cpp cpp)
+# Learner implementations are TODOs; run their checks manually until completed.
+add_executable(mini_hash_map_test labs/04_containers/mini_hash_map_test.cpp)
+target_link_libraries(mini_hash_map_test PRIVATE lab_options Threads::Threads)
+add_executable(mini_bst_map_test labs/04_containers/mini_bst_map_test.cpp)
+target_link_libraries(mini_bst_map_test PRIVATE lab_options Threads::Threads)
+foreach(exercise IN ITEMS mini_list mini_heap ring_buffer mini_array mini_deque mini_rb_tree_map)
+  add_executable(${exercise}_test labs/04_containers/${exercise}_test.cpp)
+  target_link_libraries(${exercise}_test PRIVATE lab_options Threads::Threads)
+endforeach()
+add_custom_target(container_exercises DEPENDS
+  mini_hash_map_test mini_bst_map_test mini_list_test mini_heap_test
+  ring_buffer_test mini_array_test mini_deque_test mini_rb_tree_map_test)
 add_observation(cv_handshake labs/05_mutex_cv/observe.cpp concurrency)
 add_observation(stream_io labs/11_stream_framing/observe.cpp network)
 

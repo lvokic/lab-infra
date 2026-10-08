@@ -7,7 +7,7 @@
 | [L01](01_object_model/README.md) | 对象布局、virtual、析构和切片 | 4h | object_model 观察程序 |
 | [L02](02_ownership/README.md) | RAII、copy/move、智能指针 | 3h | 自己实现 UniquePtr；test.cpp 检查所有权转移与生命周期 |
 | [L03](03_vector/README.md) | vector 生命周期、扩容、MiniVector | 6h | vector_lifetime 观察程序 |
-| [L04](04_containers/README.md) | iterator、hash/tree、容器选型 | 2h | 自己实现 |
+| [L04](04_containers/README.md) | iterator、hash/tree、容器选型 | 观察 2h；手写各项另计 | container_observe；[八套手写脚手架与检查](04_containers/SCAFFOLDS.md)，核心由你实现 |
 | [L05](05_mutex_cv/README.md) | mutex/CV、谓词和交错 | 4h | cv_handshake 观察程序 |
 | [L06](06_bounded_queue/README.md) | 有界阻塞队列、关闭协议 | 7h | 自己实现 |
 | [L07](07_atomic_publish/README.md) | atomic 发布与同步关系 | 2h | 自己实现 |

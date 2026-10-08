@@ -31,13 +31,14 @@ ctest --preset debug
 
 如果你此前在项目根目录执行过 cmake . 并生成 Makefile，可以继续 make；这类构建的程序会输出到 build/in-source/，例如 ./build/in-source/object_model。根目录旧可执行文件可能是此前产物，运行新版时使用上述输出路径。日常建议使用上面的 debug preset，F5 也使用 build/debug/。
 
-已提供四个可运行的**观察起点**，以及 unique_ptr 的练习脚手架；它们不是十二个练习的完成答案：
+已提供可运行的**观察起点**，以及 unique_ptr 的练习脚手架；它们不是十二个练习的完成答案：
 
 | 目标 | 源文件 | 观察内容 |
 |---|---|---|
 | object_model | [L01/observe.cpp](labs/01_object_model/observe.cpp) | 构造期间派发、切片、多态析构、大小与对齐 |
 | unique_ownership_test | [L02/test.cpp](labs/02_ownership/test.cpp) | 检查手写 UniquePtr 的创建、移动、release、reset 和对象生命周期 |
 | vector_lifetime | [L03/observe.cpp](labs/03_vector/observe.cpp) | reserve/resize/clear、存活对象、复制移动 |
+| container_observe | [L04/observe.cpp](labs/04_containers/observe.cpp) | map/unordered_map 接口、哈希冲突、rehash 与元素稳定性 |
 | cv_handshake | [L05/observe.cpp](labs/05_mutex_cv/observe.cpp) | 锁保护的谓词和 payload、额外通知、join |
 | stream_io | [L11/observe.cpp](labs/11_stream_framing/observe.cpp) | 本地字节流、分段读写、长度字段、EOF |
 | scratch | [scratch/main.cpp](scratch/main.cpp) | 你自己的新实验；不计入 CTest |
@@ -54,6 +55,27 @@ ctest --preset debug
 6. 将实现和边界验证加入自己的实验，填记录模板；48 小时后闭卷重答。
 
 新增独立目标时，在 CMakeLists.txt 使用 add_observation，并更新 launch/tasks 的目标选项；也可以先一直使用 scratch。具体步骤见 [实验索引](labs/README.md)。
+
+## C++ 代码格式
+
+统一使用 clang-format 18.1.8，规则在 [.clang-format](.clang-format)：两空格缩进、100 列、左侧 `T*` / `T&` 写法，非空函数、条件和循环体展开到多行。保留 include 顺序和教学注释的原有分行。规则说明见 [clang-format 官方文档](https://clang.llvm.org/docs/ClangFormatStyleOptions.html)。
+
+首次安装无需 root；当前 Linux 环境已安装：
+
+```sh
+python3 -m pip install --user -r tools/requirements-format.txt
+```
+
+在项目根目录执行：
+
+```sh
+python3 tools/format.py          # 格式化 include/、labs/、scratch/ 中的 C/C++ 文件
+python3 tools/format.py --check  # 只检查，不修改文件；不符合规则时返回非零状态
+```
+
+脚本跳过 build 目录，包含新建但尚未提交的源码。默认优先使用 `~/.local/bin/clang-format`，否则从 PATH 查找；也可以通过 `CLANG_FORMAT=/path/to/clang-format` 指定其他安装位置。
+
+VS Code 已配置 C/C++ 保存时自动格式化；右键 **Format Document** 可手动格式化当前文件，**Terminal → Run Task → Format: C++ / Format: Check C++** 可整理或检查全部源码。编辑器使用 `~/.local/bin/clang-format`；如果其他机器安装路径不同，调整 `C_Cpp.clang_format_path`。编辑器设置依据 [VS Code C/C++ 格式化文档](https://code.visualstudio.com/docs/cpp/cpp-ide#_code-formatting)。
 
 ## 性能实验用 Release
 

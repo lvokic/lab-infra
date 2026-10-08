@@ -9,38 +9,57 @@ struct Plain {
 };
 
 class Base {
- public:
+public:
   explicit Base(std::vector<std::string>& events) : events_(events), construction_value_(value()) {
     events_.push_back("Base constructor");
   }
-  Base(const Base&) = default;
-  virtual ~Base() { events_.push_back("Base destructor"); }
-  virtual int value() const { return 1; }
-  int construction_value() const { return construction_value_; }
 
- protected:
+  Base(const Base&) = default;
+
+  virtual ~Base() {
+    events_.push_back("Base destructor");
+  }
+
+  virtual int value() const {
+    return 1;
+  }
+
+  int construction_value() const {
+    return construction_value_;
+  }
+
+protected:
   std::vector<std::string>& events_;
 
- private:
+private:
   int construction_value_;
 };
 
 class Sample : public Base {
-  public:
-    explicit Sample(std::vector<std::string>& events) : Base(events) {}
-    int value() const override { return 3; }
+public:
+  explicit Sample(std::vector<std::string>& events) : Base(events) {}
+
+  int value() const override {
+    return 3;
+  }
 };
 
 class Derived final : public Base {
- public:
+public:
   explicit Derived(std::vector<std::string>& events) : Base(events) {
     events_.push_back("Derived constructor");
   }
-  ~Derived() override { events_.push_back("Derived destructor"); }
-  int value() const override { return 2; }
+
+  ~Derived() override {
+    events_.push_back("Derived destructor");
+  }
+
+  int value() const override {
+    return 2;
+  }
 };
 
-int dispatch(Base &sample) {
+int dispatch(Base& sample) {
   return sample.value();
 }
 
@@ -53,10 +72,8 @@ int main() {
     Base sliced = *object;
     std::unique_ptr<Sample> sample = std::make_unique<Sample>(events);
     require(sliced.value() == 1, "Slicing produces a Base object");
-    std::cout << "sizeof(Plain)=" << sizeof(Plain)
-              << ", sizeof(Base)=" << sizeof(Base)
-              << ", sizeof(Derived)=" << sizeof(Derived)
-              << ", alignof(Base)=" << alignof(Base)
+    std::cout << "sizeof(Plain)=" << sizeof(Plain) << ", sizeof(Base)=" << sizeof(Base)
+              << ", sizeof(Derived)=" << sizeof(Derived) << ", alignof(Base)=" << alignof(Base)
               << ", dispatched from Base = " << dispatch(sliced)
               << ", dispatched from Derived = " << dispatch(*object)
               << ", dispatched from Derived = " << dispatch(*sample)

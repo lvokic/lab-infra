@@ -14,7 +14,9 @@ class MiniVector {
 public:
   MiniVector() noexcept = default;
 
-  ~MiniVector() noexcept { releaseStorage(); }
+  ~MiniVector() noexcept {
+    releaseStorage();
+  }
 
   MiniVector(const MiniVector&) = delete;
   MiniVector& operator=(const MiniVector&) = delete;
@@ -32,7 +34,8 @@ public:
 
   // TODO：替换已有资源；自移动保留自身内容；返回当前对象的引用。
   MiniVector& operator=(MiniVector&& other) noexcept {
-    if (this == &other) return *this;
+    if (this == &other)
+      return *this;
     releaseStorage();
     allocator_ = other.allocator_;
     data_ = other.data_;
@@ -45,19 +48,24 @@ public:
   }
 
   // TODO：只查询状态，不改变元素或存储。
-  std::size_t size() const noexcept { return size_; }
-  std::size_t capacity() const noexcept { return capacity_; }
+  std::size_t size() const noexcept {
+    return size_;
+  }
+
+  std::size_t capacity() const noexcept {
+    return capacity_;
+  }
 
   // TODO：容量至少为 n；size 与已有元素内容不变。
   // n 不超过当前容量时状态不变；支持的类型范围内提供强异常保证。
   void reserve(std::size_t n) {
-    if (n <= capacity_) return;
+    if (n <= capacity_)
+      return;
     T* new_data = allocator_.allocate(n);
     std::size_t constructed = 0;
     try {
       for (; constructed < size_; ++constructed) {
-        std::construct_at(new_data + constructed,
-                          std::move_if_noexcept(data_[constructed]));
+        std::construct_at(new_data + constructed, std::move_if_noexcept(data_[constructed]));
       }
     } catch (...) {
       // 失败的槽位没有活对象，只销毁已经成功构造的前缀。
@@ -99,8 +107,13 @@ public:
   }
 
   // TODO：访问已有元素；调用方保证 index < size，不进行自动扩容。
-  T& operator[](std::size_t index) noexcept { return *(data_ + index); }
-  const T& operator[](std::size_t index) const noexcept { return *(data_ + index); }
+  T& operator[](std::size_t index) noexcept {
+    return *(data_ + index);
+  }
+
+  const T& operator[](std::size_t index) const noexcept {
+    return *(data_ + index);
+  }
 
 private:
   void releaseStorage() noexcept {
@@ -181,8 +194,8 @@ int main() {
     require(values.capacity() == capacity && values.size() == 2,
             "reserve within capacity neither shrinks nor changes size");
     values.reserve(capacity + 3);
-    require(values.capacity() >= capacity + 3 && values.size() == 2 &&
-            values[0] == 10 && values[1] == 20,
+    require(values.capacity() >= capacity + 3 && values.size() == 2 && values[0] == 10 &&
+                values[1] == 20,
             "reserve beyond capacity preserves every existing element");
   });
 
@@ -190,10 +203,13 @@ int main() {
     MiniVector<int> values;
     for (int i = 0; i < 64; ++i) {
       const int value = i * 3;
-      if (i % 2 == 0) values.push_back(value);
-      else values.push_back(int(value));
+      if (i % 2 == 0)
+        values.push_back(value);
+      else
+        values.push_back(int(value));
       require(values.size() == static_cast<std::size_t>(i + 1) &&
-              values.size() <= values.capacity(), "growth preserves size <= capacity");
+                  values.size() <= values.capacity(),
+              "growth preserves size <= capacity");
       for (int j = 0; j <= i; ++j) {
         require(values[static_cast<std::size_t>(j)] == j * 3,
                 "growth preserves all previously appended values");
@@ -224,8 +240,9 @@ int main() {
     const auto capacity = source.capacity();
     MiniVector<int> destination(std::move(source));
     require(source.size() == 0 && source.capacity() == 0, "move leaves source empty");
-    require(destination.size() == 2 && destination.capacity() == capacity &&
-            destination[0] == 10 && destination[1] == 20, "move transfers content and capacity");
+    require(destination.size() == 2 && destination.capacity() == capacity && destination[0] == 10 &&
+                destination[1] == 20,
+            "move transfers content and capacity");
     source.push_back(99);
     require(source.size() == 1 && source[0] == 99 && destination[0] == 10,
             "moved-from source can be reused independently");
@@ -242,12 +259,14 @@ int main() {
     auto& result = (destination = std::move(source));
     require(&result == &destination, "move assignment returns destination by reference");
     require(source.size() == 0 && source.capacity() == 0 && destination.size() == 2 &&
-            destination[0] == 10 && destination[1] == 20, "move replaces the previous content");
+                destination[0] == 10 && destination[1] == 20,
+            "move replaces the previous content");
     const auto capacity = destination.capacity();
     auto* alias = &destination;
     destination = std::move(*alias);
-    require(destination.size() == 2 && destination.capacity() == capacity &&
-            destination[0] == 10 && destination[1] == 20, "self-move preserves content by contract");
+    require(destination.size() == 2 && destination.capacity() == capacity && destination[0] == 10 &&
+                destination[1] == 20,
+            "self-move preserves content by contract");
     MiniVector<int> empty;
     destination = std::move(empty);
     require(destination.size() == 0 && destination.capacity() == 0,
@@ -260,22 +279,27 @@ int main() {
     int constructed = 0;
     int destroyed = 0;
   };
+
   struct Probe {
     Counts* counts;
     int value;
+
     Probe(Counts& counters, int input) : counts(&counters), value(input) {
       ++counts->alive;
       ++counts->constructed;
     }
+
     Probe(const Probe& other) : counts(other.counts), value(other.value) {
       ++counts->alive;
       ++counts->constructed;
     }
+
     Probe(Probe&& other) noexcept : counts(other.counts), value(other.value) {
       other.value = -1;
       ++counts->alive;
       ++counts->constructed;
     }
+
     ~Probe() {
       --counts->alive;
       ++counts->destroyed;
@@ -298,7 +322,8 @@ int main() {
       require(counts.alive == 2, "only the two container elements remain alive");
       values.reserve(values.capacity() + 1);
       require(values.size() == 2 && values[0].value == 10 && values[1].value == 20 &&
-              counts.alive == 2, "relocation cleans up old objects and preserves values");
+                  counts.alive == 2,
+              "relocation cleans up old objects and preserves values");
       values.clear();
       require(counts.alive == 0 && counts.constructed == counts.destroyed,
               "clear destroys every live element");
@@ -320,8 +345,8 @@ int main() {
       destination.push_back(Probe(counts, 99));
       const auto constructed = counts.constructed;
       destination = std::move(source);
-      require(counts.alive == 1 && counts.constructed == constructed &&
-              destination.size() == 1 && destination[0].value == 10,
+      require(counts.alive == 1 && counts.constructed == constructed && destination.size() == 1 &&
+                  destination[0].value == 10,
               "container move transfers ownership and destroys the replaced element");
     }
     require(counts.alive == 0 && counts.constructed == counts.destroyed,
@@ -333,31 +358,42 @@ int main() {
     values.reserve(1);
     values.push_back(std::make_unique<int>(10));
     values.push_back(std::make_unique<int>(20));
-    require(values.size() == 2 && values[0] && values[1] &&
-            *values[0] == 10 && *values[1] == 20, "growth supports move-only elements");
+    require(values.size() == 2 && values[0] && values[1] && *values[0] == 10 && *values[1] == 20,
+            "growth supports move-only elements");
     values.reserve(values.capacity() + 2);
     require(values[0] && values[1] && *values[0] == 10 && *values[1] == 20,
             "reserve retains ownership of move-only resources");
   });
 
   struct CopyFailure : std::exception {};
+
   struct ThrowingProbe {
     int* alive;
     int* copies_left;
     int value;
+
     ThrowingProbe(int& live_count, int& budget, int input)
-        : alive(&live_count), copies_left(&budget), value(input) { ++*alive; }
+        : alive(&live_count), copies_left(&budget), value(input) {
+      ++*alive;
+    }
+
     ThrowingProbe(const ThrowingProbe& other)
         : alive(other.alive), copies_left(other.copies_left), value(other.value) {
-      if (*copies_left == 0) throw CopyFailure{};
-      if (*copies_left > 0) --*copies_left;
+      if (*copies_left == 0)
+        throw CopyFailure{};
+      if (*copies_left > 0)
+        --*copies_left;
       ++*alive;  // 构造成功后才计入活对象。
     }
+
     ThrowingProbe(ThrowingProbe&& other) noexcept(false)
         : alive(other.alive), copies_left(other.copies_left), value(other.value) {
       throw CopyFailure{};  // reserve 对此可复制类型应选择拷贝。
     }
-    ~ThrowingProbe() { --*alive; }
+
+    ~ThrowingProbe() {
+      --*alive;
+    }
   };
 
   run("reserve rolls back after a partial copy failure", [] {
@@ -382,13 +418,13 @@ int main() {
         threw = true;
       }
       require(threw && copies_left == 0, "failure occurs after one successful copy");
-      require(values.size() == 2 && values.capacity() == capacity &&
-              values[0].value == 10 && values[1].value == 20 && alive == 2,
+      require(values.size() == 2 && values.capacity() == capacity && values[0].value == 10 &&
+                  values[1].value == 20 && alive == 2,
               "failed reserve cleans partial copies and retains original state");
       copies_left = -1;
       values.reserve(capacity + 1);
-      require(values.size() == 2 && values.capacity() >= capacity + 1 &&
-              values[0].value == 10 && values[1].value == 20 && alive == 2,
+      require(values.size() == 2 && values.capacity() >= capacity + 1 && values[0].value == 10 &&
+                  values[1].value == 20 && alive == 2,
               "container remains usable after reserve fails");
     }
     require(alive == 0, "all throwing test objects are destroyed");

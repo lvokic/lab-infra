@@ -4,8 +4,7 @@
 #include <vector>
 
 void show(std::string_view stage, const std::vector<int>& values) {
-  std::cout << '[' << stage << "] size=" << values.size()
-            << " capacity=" << values.capacity()
+  std::cout << '[' << stage << "] size=" << values.size() << " capacity=" << values.capacity()
             << " data=" << static_cast<const void*>(values.data()) << " values=[";
   std::string_view separator;
   // begin 指向第一个元素；end 是尾后位置。必须先判断 it != end 才能解引用。
@@ -29,17 +28,17 @@ int main() {
     std::cout << "*begin=" << *first << " *(begin + 1)=" << *(values.begin() + 1) << '\n';
 
     {
-      auto position = values.begin() + 1;  // 指向 20。
+      auto position = values.begin() + 1;           // 指向 20。
       auto inserted = values.insert(position, 15);  // 在 20 前面插入 15。
       // position 已失效；insert 返回一个指向新元素的有效迭代器。
       show("insert 15 before 20", values);
       std::cout << "*inserted=" << *inserted << '\n';
-      require(values == std::vector<int>{10, 15, 20, 30} &&
-              inserted == values.begin() + 1 && *inserted == 15,
+      require(values == std::vector<int>{10, 15, 20, 30} && inserted == values.begin() + 1 &&
+                  *inserted == 15,
               "insert returns the new element's position");
     }
-    require(values.data() == storage && *first == 10 &&
-            *first_pointer == 10 && first_reference == 10,
+    require(values.data() == storage && *first == 10 && *first_pointer == 10 &&
+                first_reference == 10,
             "without reallocation, handles before the insertion remain valid");
 
     {
@@ -48,8 +47,7 @@ int main() {
       // position 已失效；erase 返回删除位置之后的元素的新位置。
       show("erase 20", values);
       std::cout << "*next=" << *next << '\n';
-      require(values == std::vector<int>{10, 15, 30} &&
-              next == values.begin() + 2 && *next == 30,
+      require(values == std::vector<int>{10, 15, 30} && next == values.begin() + 2 && *next == 30,
               "erase returns the next surviving element's position");
     }
     require(*first == 10 && *first_pointer == 10 && first_reference == 10,
@@ -72,12 +70,11 @@ int main() {
     std::cout << "end - begin=" << values.end() - values.begin() << '\n';
     values.push_back(30);
     show("append without reallocation", values);
-    require(values.data() == storage && *first == 10 &&
-            values == std::vector<int>{10, 20, 30},
+    require(values.data() == storage && *first == 10 && values == std::vector<int>{10, 20, 30},
             "append without reallocation preserves existing element iterators");
     // 每次都重新调用 end()，不保存和使用追加前的尾后迭代器。
-    std::cout << "*first=" << *first
-              << " new end - begin=" << values.end() - values.begin() << '\n';
+    std::cout << "*first=" << *first << " new end - begin=" << values.end() - values.begin()
+              << '\n';
   }
 
   // 3. 强制扩容：所有旧元素迭代器失效，重新从容器取得迭代器。

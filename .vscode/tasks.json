@@ -2,6 +2,20 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "Format: C++",
+      "type": "process",
+      "command": "python3",
+      "args": ["${workspaceFolder}/tools/format.py"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Format: Check C++",
+      "type": "process",
+      "command": "python3",
+      "args": ["${workspaceFolder}/tools/format.py", "--check"],
+      "problemMatcher": []
+    },
+    {
       "label": "CMake: Configure Debug",
       "type": "shell",
       "command": "cmake",
@@ -111,6 +125,15 @@
         "object_model",
         "unique_ownership",
         "vector_lifetime",
+        "container_observe",
+        "mini_hash_map_test",
+        "mini_bst_map_test",
+        "mini_list_test",
+        "mini_heap_test",
+        "ring_buffer_test",
+        "mini_array_test",
+        "mini_deque_test",
+        "mini_rb_tree_map_test",
         "cv_handshake",
         "stream_io"
       ],

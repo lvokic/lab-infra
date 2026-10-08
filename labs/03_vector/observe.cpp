@@ -12,24 +12,43 @@ struct Tracked {
   static inline int moves = 0;
   int value = 0;
 
-  Tracked() { ++alive; ++constructed; }
-  explicit Tracked(int input) : value(input) { ++alive; ++constructed; }
-  Tracked(const Tracked& other) : value(other.value) { ++alive; ++constructed; ++copies; }
-  Tracked(Tracked&& other) noexcept : value(other.value) { ++alive; ++constructed; ++moves; }
-  ~Tracked() { --alive; ++destroyed; }
+  Tracked() {
+    ++alive;
+    ++constructed;
+  }
+
+  explicit Tracked(int input) : value(input) {
+    ++alive;
+    ++constructed;
+  }
+
+  Tracked(const Tracked& other) : value(other.value) {
+    ++alive;
+    ++constructed;
+    ++copies;
+  }
+
+  Tracked(Tracked&& other) noexcept : value(other.value) {
+    ++alive;
+    ++constructed;
+    ++moves;
+  }
+
+  ~Tracked() {
+    --alive;
+    ++destroyed;
+  }
 };
 
 void show_counts() {
-  std::cout << " alive=" << Tracked::alive
-            << " constructed=" << Tracked::constructed
-            << " destroyed=" << Tracked::destroyed
-            << " copies=" << Tracked::copies << " moves=" << Tracked::moves;
+  std::cout << " alive=" << Tracked::alive << " constructed=" << Tracked::constructed
+            << " destroyed=" << Tracked::destroyed << " copies=" << Tracked::copies
+            << " moves=" << Tracked::moves;
 }
 
 void show(std::string_view stage, const std::vector<Tracked>& values) {
   std::cout << '[' << stage << "] size=" << values.size() << " capacity=" << values.capacity()
-            << " data=" << static_cast<const void*>(values.data())
-            << " values=[";
+            << " data=" << static_cast<const void*>(values.data()) << " values=[";
   std::string_view separator;
   for (const auto& element : values) {
     std::cout << separator << element.value;
@@ -70,14 +89,14 @@ void observe_capacity() {
       show("B1 append within capacity", values);
     }
     show_delta("B1 append delta", before);
-    require(values.size() == 3 && values[0].value == 10 &&
-            values[1].value == 20 && values[2].value == 30,
+    require(values.size() == 3 && values[0].value == 10 && values[1].value == 20 &&
+                values[2].value == 30,
             "appending within capacity preserves order and values");
     require(values.capacity() == capacity && values.data() == storage,
             "appending within capacity keeps the same storage");
     require(Tracked::constructed == before.constructed + 3 &&
-            Tracked::destroyed == before.destroyed &&
-            Tracked::copies == before.copies && Tracked::moves == before.moves,
+                Tracked::destroyed == before.destroyed && Tracked::copies == before.copies &&
+                Tracked::moves == before.moves,
             "appending within capacity constructs only the three new elements");
   }
   require(Tracked::alive == 0, "B1 releases its elements before B2 starts");
@@ -119,8 +138,7 @@ void observe_capacity() {
     show_delta("B3 clear delta", before_clear);
     require(values.empty() && values.capacity() == capacity && Tracked::alive == 0,
             "clear removes elements and retains capacity");
-    require(Tracked::destroyed == before_clear.destroyed + 2,
-            "clear destroys both old elements");
+    require(Tracked::destroyed == before_clear.destroyed + 2, "clear destroys both old elements");
 
     const Counts before_reuse;
     values.emplace_back(30);
@@ -128,11 +146,11 @@ void observe_capacity() {
     show("B3 reuse capacity", values);
     show_delta("B3 reuse delta", before_reuse);
     require(values.size() == 2 && values[0].value == 30 && values[1].value == 40 &&
-            values.capacity() == capacity,
+                values.capacity() == capacity,
             "new elements reuse capacity retained by clear");
     require(Tracked::constructed == before_reuse.constructed + 2 &&
-            Tracked::destroyed == before_reuse.destroyed &&
-            Tracked::copies == before_reuse.copies && Tracked::moves == before_reuse.moves,
+                Tracked::destroyed == before_reuse.destroyed &&
+                Tracked::copies == before_reuse.copies && Tracked::moves == before_reuse.moves,
             "reusing capacity constructs new elements without relocation");
   }
   std::cout << "[B after all scopes]";
@@ -175,8 +193,8 @@ int main(int argc, char* argv[]) {
 
     values.resize(4);
     require(values.size() == 4 && Tracked::alive == 4, "resize constructs elements");
-    require(values[0].value == 10 && values[1].value == 20 &&
-            values[2].value == 0 && values[3].value == 0,
+    require(values[0].value == 10 && values[1].value == 20 && values[2].value == 0 &&
+                values[3].value == 0,
             "resize preserves existing values and default constructs new elements");
     show("resize(4)", values);
 
