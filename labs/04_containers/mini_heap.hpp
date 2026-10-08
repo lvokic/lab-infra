@@ -22,25 +22,37 @@ public:
   }
 
   const T& top() const {
-    throw std::logic_error("TODO: MiniHeap::top");
+    if (empty())
+      throw std::out_of_range("MiniHeap::out of range");
+    return elements_[0];
   }
 
-  void push(const T& /*value*/) {
-    throw std::logic_error("TODO: MiniHeap::push copy");
+  void push(const T& value) {
+    elements_.push_back(value);
+    sift_up(elements_.size() - 1);
   }
 
-  void push(T&& /*value*/) {
-    throw std::logic_error("TODO: MiniHeap::push move");
+  void push(T&& value) {
+    elements_.push_back(std::move(value));
+    sift_up(elements_.size() - 1);
   }
 
-  // TODO：移除堆顶；空堆 top/pop 抛 out_of_range。
+  // 移除堆顶；空堆 top/pop 抛 out_of_range。
   void pop() {
-    throw std::logic_error("TODO: MiniHeap::pop");
+    if (empty())
+      throw std::out_of_range("MiniHeap::out of range");
+    if (size() > 1)
+      elements_.front() = std::move(elements_.back());
+    elements_.pop_back();
+    if (!empty())
+      sift_down(0);
   }
 
   // TODO：替换全部元素并在线性时间内建堆；不要逐个 push。
-  void assign(std::vector<T> /*values*/) {
-    throw std::logic_error("TODO: MiniHeap::assign");
+  void assign(std::vector<T> values) {
+    clear();
+    elements_ = std::move(values);
+    heapify();
   }
 
   void clear() noexcept {
@@ -53,16 +65,40 @@ public:
   }
 
 private:
-  void sift_up(std::size_t /*index*/) {
-    throw std::logic_error("TODO: MiniHeap::sift_up");
+  void sift_up(std::size_t index) {
+    size_t n = size();
+    if (index >= n)
+      throw std::out_of_range("MiniHeap::out of range");
+    while (index > 0) {
+      size_t parent = (index - 1) / 2;
+      if (!compare_(elements_[parent], elements_[index]))
+        return;
+      std::swap(elements_[parent], elements_[index]);
+      index = parent;
+    }
   }
 
-  void sift_down(std::size_t /*index*/) {
-    throw std::logic_error("TODO: MiniHeap::sift_down");
+  void sift_down(std::size_t index) {
+    const std::size_t n = size();
+    // index < n / 2 的节点才有左孩子；叶子节点不需要下沉。
+    while (index < n / 2) {
+      const std::size_t left = index * 2 + 1;
+      const std::size_t right = left + 1;
+      std::size_t tmp = left;
+      if (right < n && compare_(elements_[left], elements_[right]))
+        tmp = right;
+      if (!compare_(elements_[index], elements_[tmp]))
+        return;
+      std::swap(elements_[index], elements_[tmp]);
+      index = tmp;
+    }
   }
 
   void heapify() {
-    throw std::logic_error("TODO: MiniHeap::heapify");
+    const std::size_t n = size();
+    for (std::size_t i = n / 2; i > 0; --i) {
+      sift_down(i - 1);
+    }
   }
 
   std::vector<T> elements_;

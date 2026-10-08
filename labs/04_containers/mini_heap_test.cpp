@@ -50,6 +50,16 @@ int main(int argc, char** argv) {
     }
     values.assign({});
     require(values.empty(), "assign empty range");
+    values.assign({42});
+    require(values.size() == 1 && values.top() == 42, "assign a single element");
+    values.pop();
+    require(values.empty(), "remove the only element");
+    values.assign({1, 2});
+    require(values.size() == 2 && values.top() == 2, "heapify with only a left child");
+    values.pop();
+    require(values.size() == 1 && values.top() == 1, "two-element heap preserves the survivor");
+    values.pop();
+    require(values.empty(), "two-element heap drains completely");
   });
   checks.run("errors", [] {
     MiniHeap<int> values;
