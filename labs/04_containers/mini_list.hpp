@@ -23,7 +23,6 @@ class MiniList {
   };
 
 public:
-  // 同一套 iterator 外壳提供可修改与只读两个版本。
   template <bool IsConst>
   class BasicIterator {
     using BasePointer = std::conditional_t<IsConst, const NodeBase*, NodeBase*>;
@@ -47,7 +46,8 @@ public:
     BasicIterator(const BasicIterator<Other>& other) : node_(other.node_) {}
 
     reference operator*() const {
-      throw std::logic_error("TODO: MiniList iterator dereference");
+      using NodePointer = std::conditional_t<IsConst, const Node*, Node*>;
+      return static_cast<NodePointer>(node_)->value;
     }
 
     pointer operator->() const {
@@ -55,19 +55,25 @@ public:
     }
 
     BasicIterator& operator++() {
-      throw std::logic_error("TODO: MiniList iterator ++");
+      node_ = node_->next;
+      return *this;
     }
 
     BasicIterator operator++(int) {
-      throw std::logic_error("TODO: MiniList iterator postfix ++");
+      BasePointer old = node_;
+      node_ = node_->next;
+      return BasicIterator(old);
     }
 
     BasicIterator& operator--() {
-      throw std::logic_error("TODO: MiniList iterator --");
+      node_ = node_->prev;
+      return *this;
     }
 
     BasicIterator operator--(int) {
-      throw std::logic_error("TODO: MiniList iterator postfix --");
+      BasePointer old = node_;
+      node_ = node_->prev;
+      return BasicIterator(old);
     }
 
     friend bool operator==(const BasicIterator&, const BasicIterator&) = default;
@@ -96,79 +102,162 @@ public:
   }
 
   iterator begin() {
-    throw std::logic_error("TODO: MiniList::begin");
+    return iterator(sentinel_.next);
   }
 
   iterator end() {
-    throw std::logic_error("TODO: MiniList::end");
+    return iterator(&sentinel_);
   }
 
   const_iterator begin() const {
-    throw std::logic_error("TODO: MiniList::begin const");
+    return const_iterator(sentinel_.next);
   }
 
   const_iterator end() const {
-    throw std::logic_error("TODO: MiniList::end const");
+    return const_iterator(&sentinel_);
   }
 
   T& front() {
-    throw std::logic_error("TODO: MiniList::front");
+    if (empty())
+      throw std::out_of_range("MiniList:out of range");
+    return *begin();
   }
 
   const T& front() const {
-    throw std::logic_error("TODO: MiniList::front const");
+    if (empty())
+      throw std::out_of_range("MiniList:out of range");
+    return *begin();
   }
 
   T& back() {
-    throw std::logic_error("TODO: MiniList::back");
+    if (empty())
+      throw std::out_of_range("MiniList:out of range");
+    auto last = end();
+    return *--last;
   }
 
   const T& back() const {
-    throw std::logic_error("TODO: MiniList::back const");
+    if (empty())
+      throw std::out_of_range("MiniList:out of range");
+    auto last = end();
+    return *--last;
   }
 
   // TODO：在 position 前构造节点，返回新节点 iterator；position 可为 end。
   // 分配/构造失败时，原有链接、内容和 size 不变。
-  iterator insert(const_iterator /*position*/, const T& /*value*/) {
-    throw std::logic_error("TODO: MiniList::insert copy");
+  iterator insert(const_iterator position, const T& value) {
+    NodeBase* node = const_cast<NodeBase*>(position.node_);
+    NodeBase* before = node->prev;
+    Node* new_node = new Node(value);
+    before->next = new_node;
+    new_node->prev = before;
+    node->prev = new_node;
+    new_node->next = node;
+    size_++;
+    return iterator(new_node);
   }
 
-  iterator insert(const_iterator /*position*/, T&& /*value*/) {
-    throw std::logic_error("TODO: MiniList::insert move");
+  iterator insert(const_iterator position, T&& value) {
+    NodeBase* node = const_cast<NodeBase*>(position.node_);
+    NodeBase* before = node->prev;
+    Node* new_node = new Node(std::move(value));
+    before->next = new_node;
+    new_node->prev = before;
+    node->prev = new_node;
+    new_node->next = node;
+    size_++;
+    return iterator(new_node);
   }
 
   // TODO：释放指定节点，返回下一个位置；erase(end()) 抛 out_of_range。
-  iterator erase(const_iterator /*position*/) {
-    throw std::logic_error("TODO: MiniList::erase");
+  iterator erase(const_iterator position) {
+    if (size() == 0)
+      throw std::out_of_range("MiniList:out of range");
+    else if (position == end())
+      throw std::out_of_range("MiniList:out of range");
+    NodeBase* node = const_cast<NodeBase*>(position.node_);
+    NodeBase* before = node->prev;
+    NodeBase* after = node->next;
+    before->next = after;
+    after->prev = before;
+    node->next = nullptr;
+    node->prev = nullptr;
+    delete static_cast<Node*>(node);
+    size_--;
+    return iterator(after);
   }
 
-  void push_front(const T& /*value*/) {
-    throw std::logic_error("TODO: MiniList::push_front copy");
+  void push_front(const T& value) {
+    NodeBase* node = const_cast<NodeBase*>(begin().node_);
+    Node* new_node = new Node(value);
+    sentinel_.next = new_node;
+    new_node->prev = &sentinel_;
+    new_node->next = node;
+    node->prev = new_node;
+    size_++;
   }
 
-  void push_front(T&& /*value*/) {
-    throw std::logic_error("TODO: MiniList::push_front move");
+  void push_front(T&& value) {
+    NodeBase* node = const_cast<NodeBase*>(begin().node_);
+    Node* new_node = new Node(std::move(value));
+    sentinel_.next = new_node;
+    new_node->prev = &sentinel_;
+    new_node->next = node;
+    node->prev = new_node;
+    size_++;
   }
 
-  void push_back(const T& /*value*/) {
-    throw std::logic_error("TODO: MiniList::push_back copy");
+  void push_back(const T& value) {
+    NodeBase* node = const_cast<NodeBase*>(sentinel_.prev);
+    Node* new_node = new Node(value);
+    sentinel_.prev = new_node;
+    new_node->next = &sentinel_;
+    new_node->prev = node;
+    node->next = new_node;
+    size_++;
   }
 
-  void push_back(T&& /*value*/) {
-    throw std::logic_error("TODO: MiniList::push_back move");
+  void push_back(T&& value) {
+    NodeBase* node = const_cast<NodeBase*>(sentinel_.prev);
+    Node* new_node = new Node(std::move(value));
+    sentinel_.prev = new_node;
+    new_node->next = &sentinel_;
+    new_node->prev = node;
+    node->next = new_node;
+    size_++;
   }
 
   // TODO：空容器的 front/back/pop 都抛 out_of_range。
   void pop_front() {
-    throw std::logic_error("TODO: MiniList::pop_front");
+    if (empty())
+      throw std::out_of_range("MiniList:out of range");
+    NodeBase* node = const_cast<NodeBase*>(begin().node_);
+    NodeBase* after = node->next;
+    after->prev = &sentinel_;
+    sentinel_.next = after;
+    node->prev = nullptr;
+    node->next = nullptr;
+    delete static_cast<Node*>(node);
+    --size_;
   }
 
   void pop_back() {
-    throw std::logic_error("TODO: MiniList::pop_back");
+    if (empty())
+      throw std::out_of_range("MiniList:out of range");
+    NodeBase* node = const_cast<NodeBase*>(sentinel_.prev);
+    NodeBase* before = node->prev;
+    before->next = &sentinel_;
+    sentinel_.prev = before;
+    node->prev = nullptr;
+    node->next = nullptr;
+    delete static_cast<Node*>(node);
+    --size_;
   }
 
   void clear() noexcept {
-    // TODO：只销毁真实节点，恢复哨兵自环，size 归零。
+    while (!empty()) {
+      pop_front();
+    }
   }
 
 private:

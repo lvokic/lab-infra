@@ -64,7 +64,8 @@ int main(int argc, char** argv) {
             "erase returns next and preserves other iterators");
     auto tail = values.insert(values.end(), 40);
     require(*tail == 40 && values.erase(tail) == values.end(), "tail insertion and removal");
-    require(values.erase(kept) == values.begin() && values.front() == 30,
+    auto next_after_first = values.erase(kept);
+    require(next_after_first == values.begin() && values.front() == 30,
             "erasing first node updates begin");
   });
   checks.run("errors", [] {
