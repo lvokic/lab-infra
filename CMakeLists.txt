@@ -57,6 +57,10 @@ add_custom_target(container_exercises DEPENDS
   mini_hash_map_test mini_bst_map_test mini_list_test mini_heap_test
   ring_buffer_test mini_array_test mini_deque_test mini_rb_tree_map_test)
 add_observation(cv_handshake labs/05_mutex_cv/observe.cpp concurrency)
+foreach(experiment IN ITEMS locks ordering notifications consumers timeout)
+  add_test(NAME cv_${experiment} COMMAND cv_handshake --${experiment})
+  set_tests_properties(cv_${experiment} PROPERTIES TIMEOUT 10 LABELS concurrency)
+endforeach()
 add_observation(stream_io labs/11_stream_framing/observe.cpp network)
 
 # The ownership test is an executable; the learner implements UniquePtr in
