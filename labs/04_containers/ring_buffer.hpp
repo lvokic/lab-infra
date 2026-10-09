@@ -44,8 +44,8 @@ public:
   bool try_push(const T& value) {
     if (full())
       return false;
-    std::construct_at(data_ + tail_, value);
     tail_ = (tail_ + 1) % capacity_;
+    std::construct_at(data_ + tail_, value);
     size_++;
     return true;
   }
@@ -53,8 +53,8 @@ public:
   bool try_push(T&& value) {
     if (full())
       return false;
-    std::construct_at(data_ + tail_, std::move(value));
     tail_ = (tail_ + 1) % capacity_;
+    std::construct_at(data_ + tail_, std::move(value));
     size_++;
     return true;
   }
@@ -69,18 +69,26 @@ public:
   }
 
   T& front() {
+    if (empty())
+      throw std::out_of_range("RingBuffer::pop::out of range");
     return *(data_ + head_);
   }
 
   const T& front() const {
+    if (empty())
+      throw std::out_of_range("RingBuffer::pop::out of range");
     return *(data_ + head_);
   }
 
   T& back() {
+    if (empty())
+      throw std::out_of_range("RingBuffer::pop::out of range");
     return *(data_ + tail_);
   }
 
   const T& back() const {
+    if (empty())
+      throw std::out_of_range("RingBuffer::pop::out of range");
     return *(data_ + tail_);
   }
 
@@ -102,7 +110,7 @@ public:
     }
     size_ = 0;
     head_ = 0;
-    tail_ = 0;
+    tail_ = -1;
   }
 
 private:
@@ -110,7 +118,7 @@ private:
   T* data_ = nullptr;
   std::size_t capacity_;
   std::size_t head_ = 0;
-  std::size_t tail_ = 0;
+  std::size_t tail_ = -1;
   std::size_t size_ = 0;
   // 不变量：head < capacity，size <= capacity，只有逻辑 [0,size) 是活对象。
   // 新增不移动已有元素；pop 仅使被移除元素的引用/指针失效。
