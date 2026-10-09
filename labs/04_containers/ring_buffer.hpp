@@ -10,7 +10,7 @@ public:
   explicit RingBuffer(std::size_t capacity) : capacity_(capacity) {
     if (capacity == 0)
       throw std::invalid_argument("capacity must be positive");
-    data_ = allocator_.allocate(capacity);  // 只有存储，尚未构造 T。
+    data_ = allocator_.allocate(capacity);
   }
 
   ~RingBuffer() noexcept {
