@@ -123,7 +123,7 @@
       "options": [
         "scratch",
         "object_model",
-        "unique_ownership",
+        "unique_ownership_test",
         "vector_lifetime",
         "container_observe",
         "mini_hash_map_test",
@@ -135,7 +135,26 @@
         "mini_deque_test",
         "mini_rb_tree_map_test",
         "cv_handshake",
-        "stream_io"
+        "stream_io",
+        "vector_iterators",
+        "mini_vector",
+        "sync_exercises_test",
+        "bounded_queue_test",
+        "atomic_observe",
+        "atomic_publication_test",
+        "memory_observe",
+        "memory_access_test",
+        "locality_observe",
+        "locality_test",
+        "false_sharing_observe",
+        "false_sharing_test",
+        "framing_test",
+        "stream_io_test",
+        "event_loop_test",
+        "poll_readiness",
+        "memory_benchmark",
+        "locality_benchmark",
+        "false_sharing_benchmark"
       ],
       "default": "scratch"
     }

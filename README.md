@@ -9,6 +9,7 @@
 | [四周计划](docs/PLAN.md) | 100 小时预算、20 个学习单元、优先级、提前面试压缩方案 |
 | [视频与材料](docs/RESOURCES.md) | 指定视频/章节、看什么、对应实验、时间预算 |
 | [12 个实验](labs/README.md) | API 契约、练习步骤、边界验证、面试追问 |
+| [L06–L12 动手路线](labs/TRAINING.md) | 从观察进入独立实现，分阶段检查、运行超时和测量限制 |
 | [本机 STL 源码地图](docs/STL_SOURCE_MAP.md) | Xcode SDK 的 vector、智能指针、哈希表、树阅读入口 |
 | [面试自测](docs/INTERVIEW.md) | 46 个机制问题及追问、三条综合模拟链 |
 | [进度与错题](docs/PROGRESS.md) | 实际用时、0–3 分自测、间隔复习 |
@@ -16,22 +17,21 @@
 
 优先完成生命周期/所有权、vector、mutex/CV 和有界队列；然后练虚拟内存/cache 和 TCP framing/背压。算法每周保留 2 小时限时复测。建议顺序和调整规则以四周计划为准；资料是定点输入，无需通看整门课程。
 
-## 在这台 Mac 上运行
+## 在当前 Linux 环境运行
 
-本机：ARM64、Apple Clang 17、CMake 4.1.2、Ninja 和 LLDB。使用 C++20，没有第三方测试框架依赖。VS Code 已有 C/C++、CMake Tools、CodeLLDB 扩展。
+项目使用 C++20、CMake 3.25 及以上、Ninja，没有第三方测试框架依赖。当前练习在 Linux/GCC 环境进行；最初的 ARM64/macOS/Apple Clang 记录作为历史观察保留，硬件和系统调用差异见各 lab。新增网络训练采用 Linux 基线；移植到 macOS 前需按对应 README 处理发送标志等平台差异。
 
-在 VS Code 中用 File → Open Folder 打开 ~/quant-dev-interview-lab；终端 code 命令目前未配置，可通过命令面板 Shell Command: Install 'code' command in PATH 添加。
+在 VS Code 中打开项目目录。下面命令在项目根目录执行；日常只构建当前目标，避免在共享服务器上无意占用过多资源。
 
 ```sh
-cd ~/quant-dev-interview-lab
 cmake --preset debug
-cmake --build --preset debug
+cmake --build --preset debug --parallel 2
 ctest --preset debug
 ```
 
 如果你此前在项目根目录执行过 cmake . 并生成 Makefile，可以继续 make；这类构建的程序会输出到 build/in-source/，例如 ./build/in-source/object_model。根目录旧可执行文件可能是此前产物，运行新版时使用上述输出路径。日常建议使用上面的 debug preset，F5 也使用 build/debug/。
 
-已提供可运行的**观察起点**，以及 unique_ptr 的练习脚手架；它们不是十二个练习的完成答案：
+已提供可运行的**观察起点**，以及独立的学员练习脚手架；核心实现留在 TODO 中。L06–L12 均有具体材料、分阶段任务和检查入口，见 [实验目录](labs/README.md)。以下是观察与早期练习入口：
 
 | 目标 | 源文件 | 观察内容 |
 |---|---|---|
@@ -41,6 +41,11 @@ ctest --preset debug
 | container_observe | [L04/observe.cpp](labs/04_containers/observe.cpp) | map/unordered_map 接口、哈希冲突、rehash 与元素稳定性 |
 | cv_handshake | [L05/observe.cpp](labs/05_mutex_cv/observe.cpp) | 锁保护的谓词和 payload、额外通知、join |
 | stream_io | [L11/observe.cpp](labs/11_stream_framing/observe.cpp) | 本地字节流、分段读写、长度字段、EOF |
+| atomic_observe | [L07/observe.cpp](labs/07_atomic_publish/observe.cpp) | atomic 操作和计数，发布实现留给练习 |
+| memory_observe | [L08/observe.cpp](labs/08_os_memory/observe.cpp) | 本机页大小、匿名映射和触碰 |
+| locality_observe | [L09/observe.cpp](labs/09_locality/observe.cpp) | 数据访问与测量起点 |
+| false_sharing_observe | [L10/observe.cpp](labs/10_false_sharing/observe.cpp) | 共享关系、布局和计数 |
+| poll_readiness | [L12/observe.cpp](labs/12_event_loop/observe.cpp) | 非阻塞就绪、部分发送和半关闭 |
 | scratch | [scratch/main.cpp](scratch/main.cpp) | 你自己的新实验；不计入 CTest |
 
 每个观察程序内有 require 检查，Release 下仍有效。它们验证特定语义路径，不代替学习任务中的边界测试或并发证明。2026-09-30 本机验证：Debug 和 Release 构建成功，各自 4/4 项 CTest 通过；VS Code JSON、目标选项和本地文档链接检查通过。本次未操作 VS Code GUI 验证 F5。
@@ -51,10 +56,10 @@ ctest --preset debug
 2. 在 observe.cpp 或 scratch/main.cpp 设置断点。
 3. F5 选择 Debug a systems experiment (LLDB)，再选择目标；启动前自动配置和构建 Debug。
 4. 看变量、对象地址、调用栈；一次只改变一个条件。
-5. 用 Terminal → Run Task → CMake: Test Debug 跑四个观察检查；Run a systems experiment 可直接选目标运行。
+5. 用 Terminal → Run Task → CMake: Test Debug 跑已完成的观察检查；Run a systems experiment 可直接选目标运行。未实现的练习检查按各 lab 命令单独运行，可能报 TODO 或挂死；终端的外部超时更适合第一次检查等待协议。
 6. 将实现和边界验证加入自己的实验，填记录模板；48 小时后闭卷重答。
 
-新增独立目标时，在 CMakeLists.txt 使用 add_observation，并更新 launch/tasks 的目标选项；也可以先一直使用 scratch。具体步骤见 [实验索引](labs/README.md)。
+L06–L12 的目标已接入 CMake 和编辑器选择列表。你另建已完成的观察目标时，使用 add_observation；尚含 TODO 的练习使用 add_learner_exercise，不直接加入默认 CTest。也可以先使用 scratch，具体步骤见 [实验索引](labs/README.md)。
 
 ## C++ 代码格式
 
@@ -89,7 +94,7 @@ ctest --preset release
 
 ## Sanitizer 状态
 
-asan（ASan/UBSan）与 tsan presets 保留，默认关闭且互斥。此前本机 ASan 连简单 smoke 程序也无法正常结束，TSan 进程异常退出；这是这次环境的运行时问题，不能据此断言 macOS 不支持这些工具。本次没有重新验证 sanitizer。
+asan（ASan/UBSan）与 tsan presets 默认关闭且互斥。最初 macOS 记录中的 sanitizer 运行异常不代表所有平台；当前 Linux 的 L06–L12 观察与脚手架已完成 ASan/UBSan 验证，新增线程观察在 setarch 兼容方式下完成 TSan 验证。目标与验证范围见 [记录](labs/VALIDATION.md)，学员 TODO 尚未完成。
 
 日常先用 Debug/Release 检查、LLDB、状态不变量和边界测试。需要动态内存/竞态检测时，在 sanitizer 运行正常的环境使用对应 preset；重复运行成功和 sanitizer 未报错都不构成并发正确性证明。
 

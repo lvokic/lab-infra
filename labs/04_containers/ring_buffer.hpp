@@ -41,46 +41,68 @@ public:
 
   // TODO：成功构造后返回 true；满时返回 false，且不移动输入对象。
   // 构造抛异常时，已有内容、size 和 head 不变。
-  bool try_push(const T& /*value*/) {
-    throw std::logic_error("TODO: RingBuffer::try_push copy");
+  bool try_push(const T& value) {
+    if (full())
+      return false;
+    std::construct_at(data_ + tail_, value);
+    tail_ = (tail_ + 1) % capacity_;
+    size_++;
+    return true;
   }
 
-  bool try_push(T&& /*value*/) {
-    throw std::logic_error("TODO: RingBuffer::try_push move");
+  bool try_push(T&& value) {
+    if (full())
+      return false;
+    std::construct_at(data_ + tail_, std::move(value));
+    tail_ = (tail_ + 1) % capacity_;
+    size_++;
+    return true;
   }
 
   // TODO：销毁队首元素，更新位置；空时抛 out_of_range。
   void pop() {
-    throw std::logic_error("TODO: RingBuffer::pop");
+    if (empty())
+      throw std::out_of_range("RingBuffer::pop::out of range");
+    std::destroy_at(data_ + head_);
+    head_ = (head_ + 1) % capacity_;
+    size_--;
   }
 
   T& front() {
-    throw std::logic_error("TODO: RingBuffer::front");
+    return *(data_ + head_);
   }
 
   const T& front() const {
-    throw std::logic_error("TODO: RingBuffer::front const");
+    return *(data_ + head_);
   }
 
   T& back() {
-    throw std::logic_error("TODO: RingBuffer::back");
+    return *(data_ + tail_);
   }
 
   const T& back() const {
-    throw std::logic_error("TODO: RingBuffer::back const");
+    return *(data_ + tail_);
   }
 
   // TODO：index 为逻辑下标，调用方保证 index < size；需要处理物理回绕。
-  T& operator[](std::size_t /*index*/) {
-    throw std::logic_error("TODO: RingBuffer::operator[]");
+  T& operator[](std::size_t index) {
+    size_t offset = (head_ + index) % capacity_;
+    return *(data_ + offset);
   }
 
-  const T& operator[](std::size_t /*index*/) const {
-    throw std::logic_error("TODO: RingBuffer::operator[] const");
+  const T& operator[](std::size_t index) const {
+    size_t offset = (head_ + index) % capacity_;
+    return *(data_ + offset);
   }
 
   void clear() noexcept {
-    // TODO：销毁所有活元素，size/head 归零，保留存储。
+    for (size_t i = 0; i < size_; ++i) {
+      size_t offset = (head_ + i) % capacity_;
+      std::destroy_at(data_ + offset);
+    }
+    size_ = 0;
+    head_ = 0;
+    tail_ = 0;
   }
 
 private:
@@ -88,6 +110,7 @@ private:
   T* data_ = nullptr;
   std::size_t capacity_;
   std::size_t head_ = 0;
+  std::size_t tail_ = 0;
   std::size_t size_ = 0;
   // 不变量：head < capacity，size <= capacity，只有逻辑 [0,size) 是活对象。
   // 新增不移动已有元素；pop 仅使被移除元素的引用/指针失效。

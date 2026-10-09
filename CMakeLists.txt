@@ -66,6 +66,34 @@ foreach(experiment IN ITEMS locks ordering notifications consumers timeout)
 endforeach()
 add_observation(stream_io labs/11_stream_framing/observe.cpp network)
 
+# L06-L12: completed observations and separate learner implementations.
+add_observation(atomic_observe labs/07_atomic_publish/observe.cpp concurrency)
+add_observation(memory_observe labs/08_os_memory/observe.cpp memory)
+add_observation(locality_observe labs/09_locality/observe.cpp performance)
+add_observation(false_sharing_observe labs/10_false_sharing/observe.cpp performance)
+add_observation(poll_readiness labs/12_event_loop/observe.cpp network)
+function(add_learner_exercise target source)
+  add_executable(${target} ${source})
+  target_link_libraries(${target} PRIVATE lab_options Threads::Threads)
+endfunction()
+add_learner_exercise(bounded_queue_test labs/06_bounded_queue/bounded_queue_test.cpp)
+add_learner_exercise(atomic_publication_test labs/07_atomic_publish/atomic_publication_test.cpp)
+add_learner_exercise(memory_access_test labs/08_os_memory/page_exercises_test.cpp)
+add_learner_exercise(locality_test labs/09_locality/locality_exercises_test.cpp)
+add_learner_exercise(false_sharing_test labs/10_false_sharing/sharing_exercises_test.cpp)
+add_learner_exercise(framing_test labs/11_stream_framing/frame_decoder_test.cpp)
+add_learner_exercise(stream_io_test labs/11_stream_framing/stream_io_test.cpp)
+add_learner_exercise(event_loop_test labs/12_event_loop/event_loop_test.cpp)
+add_custom_target(followup_exercises DEPENDS
+  bounded_queue_test atomic_publication_test memory_access_test locality_test
+  false_sharing_test framing_test stream_io_test event_loop_test)
+# These runners call learner TODOs; they are not completed CTest observations.
+add_learner_exercise(memory_benchmark labs/08_os_memory/benchmark.cpp)
+add_learner_exercise(locality_benchmark labs/09_locality/benchmark.cpp)
+add_learner_exercise(false_sharing_benchmark labs/10_false_sharing/benchmark.cpp)
+add_custom_target(followup_benchmarks DEPENDS
+  memory_benchmark locality_benchmark false_sharing_benchmark)
+
 # The ownership test is an executable; the learner implements UniquePtr in
 # observer.cpp and uses this test to check ownership and lifetime behavior.
 add_observation(unique_ownership_test labs/02_ownership/test.cpp cpp)
