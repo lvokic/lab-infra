@@ -15,7 +15,7 @@
 | [L09](09_locality/README.md) | 局部性、布局、工作集 | 4h | locality_observe；locality_test；locality_benchmark 测量你的访问路径 |
 | [L10](10_false_sharing/README.md) | 共享、对齐、一致性与测量 | 3h | false_sharing_observe；false_sharing_test；false_sharing_benchmark 测量你的布局与计数 |
 | [L11](11_stream_framing/README.md) | 部分 I/O、framing、TCP loopback | 5h | stream_io；framing_test、stream_io_test 检查解析及真实 socket 传输 |
-| [L12](12_event_loop/README.md) | nonblocking、poll、背压 | 4h；综合扩展另计 | poll_readiness 观察；event_loop_test 检查连接状态、输出缓冲和非阻塞 I/O |
+| [L12](12_event_loop/README.md) | nonblocking、poll/epoll、背压 | poll 4h；epoll 3–4h；综合扩展另计 | poll_readiness；event_loop_test；[epoll 专项脚手架与 22 项检查](12_event_loop/EPOLL_EXERCISES.md) |
 
 上述脚手架目标已经接入构建；未完成练习不加入默认 CTest。可以先查看检查名称：
 

@@ -1,6 +1,6 @@
 # L07 动手任务与检查对照
 
-先看 [README](README.md) 的原子计数 observer，再实现
+先按 [README](README.md) 运行六组 observer，再实现
 [atomic_publication.hpp](atomic_publication.hpp)。核心函数保持 TODO，不提供参考答案。
 
 ## 必做步骤
@@ -35,6 +35,9 @@ timeout 15s ./build/debug/atomic_publication_test reader_first
 - 为什么返回 nullopt 的 reader 不能同时读普通 payload。
 - 为什么多个 reader 可以复读，而 writer 不能改写第二份。
 - observer 的 relaxed 计数为何不能直接作为普通 payload 发布模板。
+- split_update 为什么没有数据竞争却丢失一次更新；seq_cst 能否修复它。
+- CAS 失败时 expected 与原子变量分别如何变化。
+- ordering 中没有观察到 relaxed 的 00，为何不能证明它不可能出现。
 
 ## 纸上分析与选做
 

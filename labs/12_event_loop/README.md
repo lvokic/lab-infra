@@ -4,6 +4,76 @@ L11 的阻塞发送循环可以等待一个连接，但事件线程必须继续�
 
 先完成 L11 parser 的独立检查。这里的基础检查使用原始字节，故不会因为 L11 尚未完成就无法逐步实现 I/O 层。四小时预算覆盖基础层；完整多连接业务集成可再安排一次练习。
 
+## 0. 从阻塞 I/O 理解 poll 和 epoll（首次接触先读）
+
+先区分两类等待。L05/L06 的 condition_variable 等待由你的程序维护的条件，比如队列非空。
+poll/epoll 等待内核管理的文件描述符事件，比如 socket 上出现可读字节。它们不会直接观察你的业务队列。
+`fd` 是进程中标识已打开文件或 socket 的整数；本节用本机 socketpair 观察，不要求先搭网络服务器。
+
+假设一个事件线程需要处理三个连接：
+
+```text
+连接 A：暂无数据
+连接 B：已经有数据
+连接 C：暂无数据
+```
+
+如果先对 A 做阻塞 recv，线程可能一直等待，无法及时处理 B。
+把连接改为非阻塞后，A 的 recv 在暂时无数据时返回 -1，errno 为 EAGAIN/EWOULDBLOCK。
+但不停轮询 A、B、C 会浪费 CPU。poll 让你一次提交这三个 fd 的关注事件，并等待其中任意一个就绪。
+
+```text
+准备 fd 与关注事件 → poll 等待 → 查看各 fd 的 revents
+        ↑                              ↓
+  更新连接状态与关注事件 ← 对就绪连接尝试 recv/send
+```
+
+### poll 的三个字段和返回值
+
+`pollfd` 是待观察连接的描述，不是连接的数据缓冲：
+
+| 字段 | 谁填写 | 含义 |
+|---|---|---|
+| fd | 程序 | 要观察哪个文件描述符 |
+| events | 程序 | 关注什么，通常是 POLLIN、POLLOUT 或它们的位或 |
+| revents | 内核 | 本次实际报告了哪些事件，用位与判断，不用相等判断 |
+
+`poll(fds, count, timeout_ms)` 的返回值为：正数表示有非零 revents 的目录项数量，0 表示超时，-1 表示错误。
+timeout 为 0 只检查一次立即返回；正数给出等待上限；-1 可无限等待。本练习的 poll_once 接口只接受非负超时。
+它返回的是事件信息，字节仍要由 recv/send 读写。
+
+| 事件/结果 | 在本实验里的处理含义 |
+|---|---|
+| POLLIN | 可以尝试读取，可能得到字节，也可能遇到 EOF |
+| POLLOUT | 可以尝试写入，不保证整个用户缓冲都能发送完 |
+| POLLHUP | 出现挂断状态，仍应处理可能尚未读完的字节 |
+| POLLERR / POLLNVAL | 错误/无效 fd，按本练习的失败契约处理 |
+| recv 返回正数 / 0 / -1 | 实际字节数 / 接收方向 EOF / 查看 errno |
+
+就绪是尝试 I/O 的依据。非阻塞连接仍需要处理 EAGAIN；它表示暂时不能继续，不是连接损坏。
+只在有待发字节时关注 POLLOUT，否则常见的可写连接可能让事件循环不断立即返回。
+具体规则见 [poll(2)](https://man7.org/linux/man-pages/man2/poll.2.html)。
+
+### epoll 在本项目中的位置
+
+当前已有 poll 的观察、脚手架与检查；另有独立的 [epoll 分阶段练习](EPOLL_EXERCISES.md)，
+提供 EpollSet、非阻塞读写的 TODO 与 22 项检查。先完成 poll 基础，再做 epoll 的 LT 和 ET。
+epoll 是 Linux 的另一套接口，保留 I/O 就绪这一思路，但把关注集合保存在内核：
+
+| 阶段 | poll | epoll |
+|---|---|---|
+| 建立关注集合 | 程序维护 pollfd 数组 | epoll_create1 创建实例，epoll_ctl 添加/修改/删除关注的 fd |
+| 等待 | 每次 poll 提交数组，查看各项 revents | epoll_wait 取得内核报告的就绪事件 |
+| 处理 | 依据状态执行非阻塞 I/O | 同样执行非阻塞 I/O、处理部分读写、EOF 和背压 |
+
+先学 level-triggered（LT）：可读条件还成立，后续等待仍会报告。
+再学 edge-triggered（ET，EPOLLET）：按就绪变化报告，处理时通常应持续读写到 EAGAIN，否则可能留下数据却等不到新的通知。
+ET 还需要考虑单连接处理预算与公平性，不能只给现有循环加一个 EPOLLET 标志。
+接口与触发规则见 [epoll(7)](https://man7.org/linux/man-pages/man7/epoll.7.html)。
+
+学习顺序：L11 字节流与部分读写 → 本节 A 的三个 poll 观察 → OutboundBuffer → PollConnection → poll_once → epoll 的 LT → ET。
+完成 atomic 不会自动掌握网络事件循环；这两部分可以分别学习。先把 poll 的事件与连接状态读懂，再迁移等待接口。
+
 ## 1. 定点阅读（25 min）
 
 | 材料 | 阅读位置 | 你需要得到的结论 |
@@ -171,4 +241,17 @@ timeout 10s ./build/asan/event_loop_test all
 
 不要一直订阅 POLLOUT，也不要把 EAGAIN 当循环重试信号。跨线程业务队列可用 TSAN 检查，单线程的原始字节基础层主要用 ASAN/UBSAN 和边界检查。
 
-选做顺序：可注入 recv/send 适配器以确定性验证 EINTR → 严格 poll deadline → 队列恢复唤醒 fd → 多连接公平性 → epoll/kqueue。达到基础和综合交付就可以进入下一阶段，不必先做完整生产网络框架。
+选做顺序：可注入 recv/send 适配器以确定性验证 EINTR → 严格 poll deadline → 队列恢复唤醒 fd → 多连接公平性 → ONESHOT/kqueue。epoll 的 LT/ET 已有下一节的专项练习；不必先做完整生产网络框架。
+
+## 9. epoll 动手练习（另安排 3–4h）
+
+按 [EPOLL_EXERCISES.md](EPOLL_EXERCISES.md) 完成关注集合、LT/ET、预算续读、半关闭和写背压。
+实现 [epoll_exercises.hpp](epoll_exercises.hpp)，检查不依赖尚未完成的 PollConnection。
+
+```bash
+cmake --preset debug &&
+cmake --build --preset debug --target epoll_exercises_test --parallel 2 &&
+./build/debug/epoll_exercises_test --help
+```
+
+先写 EpollSet，再写 drain；完整命令、22 项清单和集成边界见上述说明。

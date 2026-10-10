@@ -17,7 +17,7 @@
 | L09 | [局部性](09_locality/README.md) | 正确访问同一组数据，校验结果后比较布局与访问顺序 |
 | L10 | [共享与布局](10_false_sharing/README.md) | 控制共享关系与计数器布局，核对实际地址与总数 |
 | L11 | [字节流与分帧](11_stream_framing/README.md) | 增量解析任意分片，处理部分发送和 EOF |
-| L12 | [事件循环](12_event_loop/README.md) | 非阻塞读写、输出偏移、有限缓冲与背压 |
+| L12 | [事件循环](12_event_loop/README.md) | 非阻塞读写、输出偏移、有限缓冲与背压；[epoll 的 LT/ET 专项练习](12_event_loop/EPOLL_EXERCISES.md) |
 
 每个 lab 的扩展任务另计时间。基础阶段达标后继续主线，不用先完成所有性能调参、
 硬件计数器、跨平台适配或生产系统功能。

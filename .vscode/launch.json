@@ -48,6 +48,7 @@
         "framing_test",
         "stream_io_test",
         "event_loop_test",
+        "epoll_exercises_test",
         "poll_readiness",
         "memory_benchmark",
         "locality_benchmark",

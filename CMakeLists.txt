@@ -84,9 +84,15 @@ add_learner_exercise(false_sharing_test labs/10_false_sharing/sharing_exercises_
 add_learner_exercise(framing_test labs/11_stream_framing/frame_decoder_test.cpp)
 add_learner_exercise(stream_io_test labs/11_stream_framing/stream_io_test.cpp)
 add_learner_exercise(event_loop_test labs/12_event_loop/event_loop_test.cpp)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  add_learner_exercise(epoll_exercises_test labs/12_event_loop/epoll_exercises_test.cpp)
+endif()
 add_custom_target(followup_exercises DEPENDS
   bounded_queue_test atomic_publication_test memory_access_test locality_test
   false_sharing_test framing_test stream_io_test event_loop_test)
+if(TARGET epoll_exercises_test)
+  add_dependencies(followup_exercises epoll_exercises_test)
+endif()
 # These runners call learner TODOs; they are not completed CTest observations.
 add_learner_exercise(memory_benchmark labs/08_os_memory/benchmark.cpp)
 add_learner_exercise(locality_benchmark labs/09_locality/benchmark.cpp)

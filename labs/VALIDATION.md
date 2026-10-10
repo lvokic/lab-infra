@@ -46,3 +46,17 @@ TSan 使用此前 L05 的进程级兼容方式，不修改服务器的系统级 
 5. 目标硬件上的性能记录与替代解释；本次未做大工作集或压力实验。
 
 从 [训练路线](TRAINING.md) 进入各 lab，按单个接口、单个 case 推进。
+
+## 2026-10-10：L12 epoll 专项补充
+
+新增 [epoll 练习](12_event_loop/EPOLL_EXERCISES.md)、epoll_exercises.hpp 和 epoll_exercises_test.cpp。
+Linux 下接入 epoll_exercises_test、followup_exercises 与 VS Code 目标选择；不加入默认 CTest。
+
+- Debug、ASan/UBSan 构建成功；初始 22 项检查全部明确报 TODO，退出 1，没有挂死或 sanitizer 报告。
+- --help、默认 all、单 case、未知参数、多余参数的退出行为已检查。
+- 独立用本机内核 epoll 核对 LT/ET 的部分读取、排空后新输入、MOD 切换为 ET，
+  以及 64 KiB 写背压与 EPOLLOUT 续写；这些是测试前提验证，不是学生 C++ 实现通过。
+- 原有 poll_readiness 的 Debug CTest 通过；本地文档链接、VS Code JSON、格式与补丁空白已检查。
+
+EpollSet、read/write 核心仍为 TODO。22 项真实功能检查需要你实现后再运行；
+没有完成完整服务器、业务集成、EINTR 注入或多连接公平性验收。

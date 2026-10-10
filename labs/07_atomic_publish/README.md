@@ -1,11 +1,11 @@
-# L07｜atomic 发布与 happens-before（2h）
+# L07｜atomic 发布与 happens-before（2–2.5h）
 
 L06 用 mutex 保护状态；这里练习一个更受限的协议：一个 writer 写一次普通 payload，
 一个原子标志宣布它已经准备好，reader 观察标志后读取 payload。
 你要说明这次读为什么安全，而不是凭某次输出正确作判断。
 
 先运行 [observe.cpp](observe.cpp)，再自己实现
-[atomic_publication.hpp](atomic_publication.hpp)。观察程序只演示原子计数，
+[atomic_publication.hpp](atomic_publication.hpp)。观察程序分六组演示原子操作与同步，
 不会提供一次性发布练习的核心实现。没有可执行的故意 data race 版本。
 
 ## 1. 材料与需要掌握的三个词（20 min）
@@ -26,34 +26,86 @@ L06 用 mutex 保护状态；这里练习一个更受限的协议：一个 write
 因此成功读到 true 可以明确对应这次发布。不要把这个结论直接推广到反复复用的对象。
 内存序规则依据上述规范；其余限制是本实验刻意缩小的接口契约。
 
-## 2. 观察：relaxed 仍然是 atomic（15 min）
+## 2. 观察：从原子操作到内存序（30 min）
 
 ```sh
 cmake --preset debug &&
 cmake --build --preset debug --target atomic_observe --parallel 2 &&
-./build/debug/atomic_observe
+./build/debug/atomic_observe all
 ```
 
-两个线程各对同一个 atomic<int> 做 1000 次 relaxed fetch_add，join 后检查总数为 2000。
+默认执行全部六组，也支持单项名称和 `--help`。先按下表逐项运行，读懂本组再进入下一组。
+
+```sh
+./build/debug/atomic_observe basics
+./build/debug/atomic_observe split_update
+./build/debug/atomic_observe rmw_counter
+./build/debug/atomic_observe cas
+./build/debug/atomic_observe mutex_counter
+./build/debug/atomic_observe ordering
+```
+
+| 场景 | 运行前预测 | 运行后解释 |
+|---|---|---|
+| A `basics` | 初值 3，store 7，exchange 11，fetch_add 2：每次返回什么？ | load 读取；store 写入；exchange 和 fetch_add 返回更新前的值，最终为 13 |
+| B `split_update` | 两个线程都先读到 0，然后分别 store 1，总数是多少？ | 最终为 1；单次访问是原子的，但 load、计算、store 的组合不是一次原子操作 |
+| C `rmw_counter` | 两个线程各 fetch_add 1000 次 | 最终为 2000；读、修改、写作为一次不可分割的更新，称为 RMW |
+| D `cas` | 当前 10，expected=7，尝试改成 20 | 第一次失败，expected 被改成 10；第二次成功，原子值改成 20 |
+| E `mutex_counter` | 锁内对普通 int 做同样的递增 | 最终为 2000；mutex 保护整个操作，适合随后扩展为多个字段的不变量 |
+| F `ordering` | 两个线程分别先写自己的原子变量，再读另一个 | 对比 relaxed 与 seq_cst 下四种读取组合；观察频率不能代替规范保证 |
+
+### A–C：原子变量不等于任意操作组合都安全
+
+先理解 `std::atomic<int>` 仍然保存一个整数，只是通过原子接口访问它。
+`load`、`store` 各是一次操作；`fetch_add` 把“读取旧值并加上增量”合并为一次操作。
+B 用 latch 确定性安排下面的交错，所有共享计数器访问都仍然是 atomic，没有 data race：
 
 ```text
-[atomic counter] value=2000 expected=2000 is_lock_free=... is_always_lock_free=...
-[scope] counter only; no ordinary payload is published by this observer
+线程 1：load 得到 0 ── 等待两个线程都读完 ── store 1
+线程 2：load 得到 0 ── 等待两个线程都读完 ── store 1
+最终值：1；两次递增的业务目标没有达到。
 ```
 
-| 字段 | 应该怎样理解 |
-|---|---|
-| value / expected | 本实验只有一个原子计数器，更新不能丢失 |
-| is_lock_free | 当前对象的原子操作是否由实现保证无锁 |
-| is_always_lock_free | 当前类型在该实现中是否始终无锁 |
+这是丢失更新。TSan 通常不会把这种原子访问的逻辑错误当作数据竞争报告。
+即使把 B 的操作都改成 seq_cst，上面这种交错仍然成立；更强内存序不会把两个操作合成一个 RMW。
 
-这些属性的定义见 [atomic 类型操作规范](https://eel.is/c++draft/atomics.types.operations)。
-不要求它们在所有平台都为 1，也不从它们推断延迟或整个程序是无锁算法。
+C 的 `is_lock_free` 表示当前对象的原子操作是否无锁，`is_always_lock_free` 表示该类型在本实现中是否始终无锁。
+不要求所有平台都输出 1，也不能据此推断性能。C 和 E 没有做计时比较。
+
+### D：CAS 中 expected 是输入，也是失败时的输出
+
+CAS 是 compare-and-exchange。仅当原子变量等于 expected 时，把原子变量改为 desired。
+失败时原子变量不被此次操作修改，但 expected 被更新为比较时读到的值。
+观察代码使用 strong，让这个整数、单线程场景的结果确定。
+weak 允许伪失败，通常放在重试循环中；暂时不把 CAS 扩展成无锁容器。
+操作定义见 [atomic 类型操作规范](https://eel.is/c++draft/atomics.types.operations)。
+
+### F：内存序约束的是不同操作之间的关系
+
+每轮先把 x、y 归零，再让两个工作线程开始：
+
+```text
+线程 1：x.store(1, order) → r1 = y.load(order)
+线程 2：y.store(1, order) → r2 = x.load(order)
+```
+
+输出 `reads_00/01/10/11` 是 128 轮中各 `(r1,r2)` 组合的次数。
+relaxed 允许两个读取都得到 0，但本机不一定观察到；没有出现不代表它被禁止。
+seq_cst 的这组操作需要符合共同的全序，加上线程内先后，不能同时读到 0：
+若 r1 为 0，就要把线程 1 读取放在线程 2 写入之前；若 r2 也为 0，就形成顺序环。
+本实验只要求 seq_cst 的 `reads_00 == 0`，不检查其他次数，也不要求 relaxed 出现 00。
+
+`std::barrier` 是每轮的集合点，参与者为两个工作线程和主线程。
+第一处等待让初始化完成后再开始；第二处让主线程在两个结果写完后统计。
+它不在本轮两个线程的 store/load 之间额外规定顺序。
+
+这里只用两个原子变量；release/acquire 与普通 payload 的同步由下一节练习完成。
+它们的规则依据 [atomic 内存序](https://eel.is/c++draft/atomics.order)，需要画同步链解释。
+不要把原子变量改成普通 int 来运行故意的数据竞争。
+
 relaxed 可以适合单独的统计计数，但不因此保证另一个普通 payload 已可安全读取。
-这个 observer 的工作线程已经 join，且没有发布任何关联的普通共享数据。
-
-把 per_worker 从 1000 改成 100、5000，预测最终总数再运行；
-不要把 counter 改成普通 int 来尝试运行 data race。
+完成 A–F 后，自己回答：B 为什么没有 data race 却算错？CAS 失败时哪个变量改变？
+为什么 C 的 relaxed 足够，而普通 payload 的发布还需要额外同步关系？
 
 ## 3. 固定一次性发布契约（15 min）
 
@@ -134,7 +186,7 @@ reader: 读取 ready      →  读取普通 payload
 详细检查对照见 [EXERCISES.md](EXERCISES.md)。验收要求：
 
 1. 7 项检查通过，且能自己画出完整 happens-before 链。
-2. 分清 observer 的原子计数与练习的普通字段发布。
+2. 解释六组 observer，分清原子访问、复合操作、内存序与普通字段发布。
 3. 说明只有一个 writer、一次发布、发布后不可变三个前提。
 4. 解释为什么 repeated_reads 是安全复读，而 independent_rounds 必须创建新对象。
 5. 说明重试与 yield 的 CPU 成本；本实验不声称有等待时限或公平保证。
