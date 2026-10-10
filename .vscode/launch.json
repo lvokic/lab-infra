@@ -39,6 +39,7 @@
         "bounded_queue_test",
         "atomic_observe",
         "atomic_publication_test",
+        "memory_order_exercises_test",
         "memory_observe",
         "memory_access_test",
         "locality_observe",

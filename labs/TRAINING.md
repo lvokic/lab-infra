@@ -12,7 +12,7 @@
 | 阶段 | 入口 | 你需要亲手完成的能力 |
 |---|---|---|
 | L06 | [有界阻塞队列](06_bounded_queue/README.md) | 空/满等待、关闭、排空、线程退出 |
-| L07 | [atomic 发布](07_atomic_publish/README.md) | 一次性发布与读取，并解释同步关系 |
+| L07 | [atomic 发布](07_atomic_publish/README.md) | [三线程接力](07_atomic_publish/EXERCISES.md)，直接在原子操作中选择内存序；再完成直接发布并解释同步关系 |
 | L08 | [OS 与内存](08_os_memory/README.md) | 按本机页大小定位和触碰页面，区分映射与首次访问 |
 | L09 | [局部性](09_locality/README.md) | 正确访问同一组数据，校验结果后比较布局与访问顺序 |
 | L10 | [共享与布局](10_false_sharing/README.md) | 控制共享关系与计数器布局，核对实际地址与总数 |

@@ -1,12 +1,17 @@
-# L07｜atomic 发布与 happens-before（2–2.5h）
+# L07｜atomic、内存序与发布协议（3–4h）
 
-L06 用 mutex 保护状态；这里练习一个更受限的协议：一个 writer 写一次普通 payload，
-一个原子标志宣布它已经准备好，reader 观察标志后读取 payload。
-你要说明这次读为什么安全，而不是凭某次输出正确作判断。
+L06 用 mutex 保护共享状态；本节先观察原子操作和五种内存序，再实现单次发布与三线程接力。
+观察示例已完成；两套练习的核心仍由你写，不提供可执行的故意数据竞争版本。
 
-先运行 [observe.cpp](observe.cpp)，再自己实现
-[atomic_publication.hpp](atomic_publication.hpp)。观察程序分六组演示原子操作与同步，
-不会提供一次性发布练习的核心实现。没有可执行的故意 data race 版本。
+本目录只保留两个教学文档：
+
+| 文档 | 内容 |
+|---|---|
+| README.md（本文件） | 阅读材料、五种内存序、八组观察、barrier 与同步关系 |
+| [EXERCISES.md](EXERCISES.md) | 接力与直接发布的实现步骤、内存序选择、检查、证明和验收 |
+
+学习顺序：A–E 原子基础 → G release/acquire → H acq_rel → F 内存序对比与 barrier → 动手练习。
+内存序描述访问之间的关系，不是等待时间，也不会自动把多个操作合成一个原子操作。
 
 ## 1. 材料与需要掌握的三个词（20 min）
 
@@ -22,11 +27,30 @@ L06 用 mutex 保护状态；这里练习一个更受限的协议：一个 write
 - **synchronizes-with**：本协议中，读取对应 release 写入值的 acquire 操作与其建立同步。
 - **happens-before**：把线程内先后与跨线程同步连接起来，说明普通字段的读写有顺序。
 
-这里有一个 ready，初始 false，唯一一次写成 true；没有 reset，也没有第二次更新。
+G 和直接发布练习使用 ready，初始 false，唯一一次写成 true；没有 reset，也没有第二次更新。
 因此成功读到 true 可以明确对应这次发布。不要把这个结论直接推广到反复复用的对象。
 内存序规则依据上述规范；其余限制是本实验刻意缩小的接口契约。
 
-## 2. 观察：从原子操作到内存序（30 min）
+## 2. 五种内存序各负责什么
+
+| 内存序 | 原子操作自身 | 关联访问的保证 | 本项目中的观察 |
+|---|---|---|---|
+| relaxed | 仍然原子 | 不通过该操作建立其他字段的同步 | C：独立统计计数 |
+| release | 通常用于发布端 store | 把本线程此前访问接到后面的匹配 acquire | G：ready 写 true；H：source 写 stage=1 |
+| acquire | 通常用于接收端 load | 读到匹配发布后，本线程后续访问获得同步保证 | G：看到 ready=true；H：看到 stage=2 |
+| acq_rel | 用于同时读取并写入的 RMW | acquire 接收前一阶段，release 发布自己的先前访问 | H：exchange 把 stage 从 1 变成 2 |
+| seq_cst | 仍然原子 | 具有相应 acquire/release 语义，并额外约束 seq_cst 操作的共同全序 | F：排除两个读取都为 0 |
+
+这是本阶段使用的五种，不把它们简单排列成适合所有算法的“性能档位”。
+C++20 还提供 consume，本练习不处理依赖链，只练上面五种。
+定义见 [原子内存序](https://eel.is/c++draft/atomics.order) 和
+[原子接口的合法参数](https://eel.is/c++draft/atomics.types.operations)。
+
+store 不能使用 acquire/acq_rel；load 不能使用 release/acq_rel。
+exchange/fetch_add/CAS 等读改写操作才同时有“读”和“写”两部分。
+不要为了看不同输出而传入非法内存序；它不是一种有效的错误实验。
+
+## 3. 八组观察：运行后解释每个保证
 
 ```sh
 cmake --preset debug &&
@@ -34,7 +58,7 @@ cmake --build --preset debug --target atomic_observe --parallel 2 &&
 ./build/debug/atomic_observe all
 ```
 
-默认执行全部六组，也支持单项名称和 `--help`。先按下表逐项运行，读懂本组再进入下一组。
+默认执行全部八组，也支持单项名称和 `--help`。先按下表逐项运行，读懂本组再进入下一组。
 
 ```sh
 ./build/debug/atomic_observe basics
@@ -43,6 +67,8 @@ cmake --build --preset debug --target atomic_observe --parallel 2 &&
 ./build/debug/atomic_observe cas
 ./build/debug/atomic_observe mutex_counter
 ./build/debug/atomic_observe ordering
+./build/debug/atomic_observe release_acquire
+./build/debug/atomic_observe acq_rel_relay
 ```
 
 | 场景 | 运行前预测 | 运行后解释 |
@@ -52,7 +78,9 @@ cmake --build --preset debug --target atomic_observe --parallel 2 &&
 | C `rmw_counter` | 两个线程各 fetch_add 1000 次 | 最终为 2000；读、修改、写作为一次不可分割的更新，称为 RMW |
 | D `cas` | 当前 10，expected=7，尝试改成 20 | 第一次失败，expected 被改成 10；第二次成功，原子值改成 20 |
 | E `mutex_counter` | 锁内对普通 int 做同样的递增 | 最终为 2000；mutex 保护整个操作，适合随后扩展为多个字段的不变量 |
-| F `ordering` | 两个线程分别先写自己的原子变量，再读另一个 | 对比 relaxed 与 seq_cst 下四种读取组合；观察频率不能代替规范保证 |
+| F `ordering` | 两个线程分别先写自己的原子变量，再读另一个 | 对比 relaxed、release/acquire、seq_cst；观察频率不能代替规范保证 |
+| G `release_acquire` | value 的读写为 relaxed，ready 的发布/观察为 release/acquire | 获取对应的发布后，读取 value 得到 42；保证来自 ready 上的关系 |
+| H `acq_rel_relay` | source 发布 1，relay 交换成 2，reader 获取 2 | relay 获取普通 source，同时把自己的普通 note 发布给 reader |
 
 ### A–C：原子变量不等于任意操作组合都安全
 
@@ -80,129 +108,135 @@ CAS 是 compare-and-exchange。仅当原子变量等于 expected 时，把原子
 weak 允许伪失败，通常放在重试循环中；暂时不把 CAS 扩展成无锁容器。
 操作定义见 [atomic 类型操作规范](https://eel.is/c++draft/atomics.types.operations)。
 
-### F：内存序约束的是不同操作之间的关系
+### G：为什么数据的 relaxed 读取也能得到保证
 
-每轮先把 x、y 归零，再让两个工作线程开始：
+```bash
+./build/debug/atomic_observe release_acquire
+```
+
+观察代码里的两个原子对象 value 与 ready：
 
 ```text
-线程 1：x.store(1, order) → r1 = y.load(order)
-线程 2：y.store(1, order) → r2 = x.load(order)
+writer：value.store(42, relaxed)
+                    ↓ 线程内先后
+        ready.store(true, release)
+                    │ reader 的 acquire 读到了这个 true
+                    ↓
+reader：ready.load(acquire)
+                    ↓ 线程内先后
+        value.load(relaxed) → 42
 ```
 
-输出 `reads_00/01/10/11` 是 128 轮中各 `(r1,r2)` 组合的次数。
-relaxed 允许两个读取都得到 0，但本机不一定观察到；没有出现不代表它被禁止。
-seq_cst 的这组操作需要符合共同的全序，加上线程内先后，不能同时读到 0：
-若 r1 为 0，就要把线程 1 读取放在线程 2 写入之前；若 r2 也为 0，就形成顺序环。
-本实验只要求 seq_cst 的 `reads_00 == 0`，不检查其他次数，也不要求 relaxed 出现 00。
+输出列出四次访问的内存序。value 的读取不是自己建立同步，是被 ready 上的同步关系保护。
+唯一写入 42 先于这次读取，因此结果要求为 42。数据 value 也使用 atomic，是为了隔离本组的观察范围；
+原有 OneShotPublication 才让你处理普通 payload。
 
-`std::barrier` 是每轮的集合点，参与者为两个工作线程和主线程。
-第一处等待让初始化完成后再开始；第二处让主线程在两个结果写完后统计。
-它不在本轮两个线程的 store/load 之间额外规定顺序。
+先在纸上把 ready 的读写改成 relaxed：42 仍可能出现，但不再能用这条发布关系保证。
+G 的 value 是 atomic，这种纸上变体不涉及普通字段的数据竞争；不过本项目不靠观察旧值次数证明结论。
+不要把同样的弱化搬到普通 payload 上运行，它可能引入 UB。
 
-这里只用两个原子变量；release/acquire 与普通 payload 的同步由下一节练习完成。
-它们的规则依据 [atomic 内存序](https://eel.is/c++draft/atomics.order)，需要画同步链解释。
-不要把原子变量改成普通 int 来运行故意的数据竞争。
+主线程的 start latch 只放行本轮开始；读写发生在放行之后。
+join 只保证主线程最后读取 observed，没有为工作线程中先前读取 value 建立额外同步。
 
-relaxed 可以适合单独的统计计数，但不因此保证另一个普通 payload 已可安全读取。
-完成 A–F 后，自己回答：B 为什么没有 data race 却算错？CAS 失败时哪个变量改变？
-为什么 C 的 relaxed 足够，而普通 payload 的发布还需要额外同步关系？
+### H：acq_rel 为什么需要“读改写”
 
-## 3. 固定一次性发布契约（15 min）
-
-PublicationPayload 有普通整数 sequence 和四个普通 samples，检查要求整组值完整一致。
-
-| 接口 | 契约 |
-|---|---|
-| publish(value) | 唯一 writer 在对象一生只调用一次；完成后 payload 永不再修改 |
-| try_read() const | 未发布时立即返回 nullopt；已发布时返回完整 payload 副本；接口不阻塞 |
-
-允许多个 reader 和重复读取。没有抢占发布、失败发布、关闭、超时或第二次发布接口。
-这些不是让你遗漏检查，而是调用方的前提；测试也遵守它们。
-析构前 owner 必须结束并 join 所有使用线程。
-
-只用一个 atomic<bool> 和普通 payload；不要加 mutex，也不要把每个普通字段都改成 atomic。
-保留 TODO 的内存序选择，由你实现和解释。
-
-## 4. 自己实现并分阶段运行（35 min）
-
-```sh
-cmake --build --preset debug --target atomic_publication_test --parallel 2 &&
-./build/debug/atomic_publication_test --help
+```bash
+./build/debug/atomic_observe acq_rel_relay
 ```
 
-只修改 [atomic_publication.hpp](atomic_publication.hpp)，按以下顺序做：
-
-1. 先完成未发布时 try_read 的行为。
-2. 决定 writer 中“写 payload”和“改变 ready”的顺序与内存序。
-3. 决定 reader 中“读 ready”和“读 payload”的顺序与内存序。
-4. 在纸上完成下一节的证明，再运行并发检查。
-
-```sh
-timeout 15s ./build/debug/atomic_publication_test initially_empty
-timeout 15s ./build/debug/atomic_publication_test writer_first
-timeout 15s ./build/debug/atomic_publication_test reader_first
-timeout 15s ./build/debug/atomic_publication_test concurrent_start
-timeout 15s ./build/debug/atomic_publication_test repeated_reads
-timeout 15s ./build/debug/atomic_publication_test multiple_readers
-timeout 15s ./build/debug/atomic_publication_test independent_rounds
-```
-
-共 7 项检查，默认 all，也支持一个 case 名。未实现时明确失败，练习不加入默认 CTest。
-reader_first 保证 reader 初次看到未发布，然后让 writer 发布。
-其 latch 建立的顺序是 reader 初次检查到 writer 发布，不会替代 writer 到 reader 后续读取的同步。
-concurrent_start 的公共起点也不能同步起点之后发生的 payload 写入与读取。
-
-测试重试时用 yield，不用 sleep 规定先后；yield 不能建立 payload 的同步关系，也不保证公平。
-测试的 packaged_task 收集线程异常，主线程报告失败前清理并 join；
-错误实现仍可能永远等不到 ready，外部 timeout 防止运行无限挂起。
-
-## 5. 必须交付的同步证明（20 min）
-
-自己填下面的关系，不要只写“atomic 所以线程安全”：
+这组有三个角色，普通字段为 source、note，原子状态只走 0→1→2：
 
 ```text
-writer: 写普通 payload  →  发布 ready
-                                  │
-                           reader 读到了哪次写入？
-                                  │
-reader: 读取 ready      →  读取普通 payload
+source 线程：写 source=42 → stage.store(1, release)
+                                        │ exchange 读取了 1：acquire 部分
+relay 线程：写 note=7 → stage.exchange(2, acq_rel) → 读 source
+                                        │ exchange 写入了 2：release 部分
+reader 线程：                 stage.load(acquire) 读到 2 → 读 source、note
 ```
 
-在两条横线标 sequenced-before；在中间填同步关系及成立条件；
-最后连接成“写 payload happens-before 读 payload”。
-解释未读到 true 时为什么不能提前读取 payload，为什么发布之后必须保持 payload 不变。
+注意 relay 的两个不同方向：
 
-然后仅在纸上分析三个变体，不编译运行它们：
+- note 是 relay 自己准备的数据，在 exchange **之前**写好，由 release 部分发布。
+- source 由别的线程写，在 exchange **之后**读取，由 acquire 部分接收。
 
-1. ready 的写和读都改成 relaxed，缺少哪条边？
-2. 先发布 ready，再填写普通 payload，哪次普通访问失去顺序保证？
-3. reader 还在读取第一份 payload，writer 已开始写第二份，为什么一次发布关系不足以保护这两次访问？
+relay 在 exchange 前用 relaxed 检查 stage=1，只用于决定现在能否操作。
+它还没有资格凭这个预检查去读取普通 source；那次 exchange 读到 1 后才建立所需的 acquire 关系。
+这里只允许一个 source、一个 relay，stage 没有其他写者，所以预检查到 1 后不会被其他 relay 抢走。
 
-第三种情况需要新的复用/消费完成协议。换成 seq_cst 标志也不能让普通字段的并发改写自动安全。
-先不实现这样的复用，更不扩展成无锁队列。
+输出 old_stage=1、relay_read=42、received_source=42、received_note=7。
+不要在 exchange 之后才写 note：reader 可能已经看到 2 并开始读 note。
+同样不要把 observer 中 join 后打印的 relay_read 当作也被 stage=2 发布给了 reader；
+它在 exchange 之后才写，只由主线程在 join 后读取。
 
-## 6. 验收与下一步（15 min）
+仅在纸上分析：
 
-详细检查对照见 [EXERCISES.md](EXERCISES.md)。验收要求：
+1. exchange 改为 release，relay 自己读取 source 缺少什么？
+2. exchange 改为 acquire，reader 读取 note 缺少什么？
+3. exchange 改为 relaxed，两处访问分别如何证明或无法证明？
 
-1. 7 项检查通过，且能自己画出完整 happens-before 链。
-2. 解释六组 observer，分清原子访问、复合操作、内存序与普通字段发布。
-3. 说明只有一个 writer、一次发布、发布后不可变三个前提。
-4. 解释为什么 repeated_reads 是安全复读，而 independent_rounds 必须创建新对象。
-5. 说明重试与 yield 的 CPU 成本；本实验不声称有等待时限或公平保证。
+source 的 release 还可能经 RMW 的 release sequence 被下游 acquire 观察到。
+因此不能笼统说“弱化 relay 后所有数据都一定读错”；要逐个字段指出缺失的关系。
+本练习明确要求 relay 本身获取 source，并发布自己的普通 note，使用 acq_rel 表达这两个角色。
+弱化后的普通字段变体只做关系分析，不运行故意数据竞争。
 
-```sh
-cmake --build --preset debug --target atomic_publication_test --parallel 2 &&
-timeout 15s ./build/debug/atomic_publication_test all
+### F：release/acquire 与 seq_cst 不是同一回事
 
-cmake --preset tsan &&
-cmake --build --preset tsan --target atomic_publication_test --parallel 2 &&
-timeout 15s ./build/tsan/atomic_publication_test all
+```bash
+./build/debug/atomic_observe ordering
 ```
 
-此前的 TSan mapping 问题可尝试
-`timeout 15s setarch x86_64 -R ./build/tsan/atomic_publication_test all`。
-没有竞态报告不能代替同步证明；特别是 reader 启动前已经写完的路径，容易由线程创建关系掩盖缺失的发布关系。
+F 比较三种配置：relaxed/relaxed、release-store/acquire-load、seq_cst/seq_cst。
+两线程分别写 x/y 为 1，再读对方：
 
-接下来进入 [L08](../08_os_memory/README.md) 的系统观察。
-SPSC ring buffer、atomic wait/notify 和可重复发布都是选做，先写生命周期与退出契约再开始。
+```text
+线程 1：x.store(1, store_order) → r1 = y.load(load_order)
+线程 2：y.store(1, store_order) → r2 = x.load(load_order)
+```
+
+reads_00/01/10/11 是 128 轮中各 (r1,r2) 组合的次数。
+
+| 配置 | 两个读取都为 0 是否允许 | 为什么 |
+|---|---|---|
+| relaxed | 允许 | 没有借这些操作建立跨线程发布关系 |
+| release/acquire | 允许 | 两次 acquire 都读到初始 0，没有读到对方 release 发布的 1 |
+| seq_cst | 本场景不允许 | 四个 seq_cst 操作的共同顺序和线程内顺序无法同时满足 00 |
+
+G 则是确认读取了发布的 true 后才读取数据；F 没有这个确认条件。
+所以不能照搬 G 的保证到 F。本机可能三行 reads_00 都是 0；那只是本次采样，没有改变规范允许的结果。
+不加 sleep 去制造“内存序一定输出不同”的假象，也不以次数或速度给内存序打分。
+
+若 seq_cst 下 r1 为 0，就要把线程 1 的读取放在线程 2 的写入之前；
+若 r2 也为 0，加上两线程各自先写后读，就形成顺序环。
+本实验只检查 seq_cst 的 reads_00 为 0，不限定其他次数，也不要求较弱配置一定出现 00。
+
+### F 中的 barrier：阶段边界的集合点
+
+`std::barrier` 是 C++20 的线程同步工具。本实验把参与者数量固定为三个；
+每一轮里，每个参与者到达 barrier 并等待，直到所有参与者都到达，随后大家才能继续。
+这一轮的 barrier 就像一个集合点。
+
+它常用于分阶段并行工作：先让所有线程完成阶段 A，再一起进入阶段 B。
+barrier 也提供阶段之间的同步，因此 barrier 前完成的写入能被越过该 barrier 后的代码观察到。
+它不会替你保护任意共享数据；同一阶段里，多个线程仍可能并行访问共享状态。
+
+`observe.cpp` 中的 `std::barrier phase(3)` 有三个参与者：主线程和两个工作线程。每轮有两个集合点：
+
+1. 主线程先把 `x`、`y` 清零；三方通过第一个 barrier 后，两个工作线程开始本轮读写。
+2. 工作线程写好各自的读取结果后到达第二个 barrier；主线程等两方都到达后再统计结果。
+
+barrier 让一组线程在阶段边界会合，并同步 barrier 前后的阶段。
+原子内存序则约束原子操作之间的可见性和顺序关系。
+barrier 不会把 `relaxed` 自动变成 `release/acquire`，
+也不会替 `ordering` 中的 store/load 增加线程内顺序以外的全局顺序。
+
+本实验中的 barrier 用来重置每轮状态并安全收集结果；它刻意没有消除要观察的读写交错。
+
+## 4. 从观察进入练习
+
+理解 G 的直接发布与 H 的接力关系后，按 [EXERCISES.md](EXERCISES.md) 实现
+RelayPublication 和 OneShotPublication，并解释原子操作中的内存序选择。
+未观察到某个结果，不代表规范禁止它；
+没有 TSan 报告，也不能代替每个普通字段的 happens-before 证明。
+
+完成本节基础后进入 [L08](../08_os_memory/README.md)。
+SPSC ring buffer、atomic wait/notify 和可重复发布另作扩展，先写生命周期与退出契约。

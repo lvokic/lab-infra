@@ -10,7 +10,7 @@
 | [L04](04_containers/README.md) | iterator、hash/tree、容器选型 | 观察 2h；手写各项另计 | container_observe；[八套手写脚手架与检查](04_containers/SCAFFOLDS.md)，核心由你实现 |
 | [L05](05_mutex_cv/README.md) | mutex/CV、谓词和交错 | 4h；补充练习另计 | cv_handshake 五组观察；[三个同步练习](05_mutex_cv/EXERCISES.md)，sync_exercises_test |
 | [L06](06_bounded_queue/README.md) | 有界阻塞队列、关闭协议 | 7h | bounded_queue.hpp；bounded_queue_test 检查空/满、关闭、排空和多线程 |
-| [L07](07_atomic_publish/README.md) | atomic 发布与同步关系 | 2h | atomic_observe；atomic_publication_test 检查一次性发布 |
+| [L07](07_atomic_publish/README.md) | atomic 发布与同步关系 | 2–2.5h；内存序补充 1–1.5h | atomic_observe 八组；[接力与直接发布练习](07_atomic_publish/EXERCISES.md)；memory_order_exercises_test、atomic_publication_test |
 | [L08](08_os_memory/README.md) | 进程/线程、VM、TLB、缺页 | 4h | memory_observe；memory_access_test；memory_benchmark 测量你的按页实现 |
 | [L09](09_locality/README.md) | 局部性、布局、工作集 | 4h | locality_observe；locality_test；locality_benchmark 测量你的访问路径 |
 | [L10](10_false_sharing/README.md) | 共享、对齐、一致性与测量 | 3h | false_sharing_observe；false_sharing_test；false_sharing_benchmark 测量你的布局与计数 |

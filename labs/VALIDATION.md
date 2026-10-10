@@ -60,3 +60,16 @@ Linux 下接入 epoll_exercises_test、followup_exercises 与 VS Code 目标选�
 
 EpollSet、read/write 核心仍为 TODO。22 项真实功能检查需要你实现后再运行；
 没有完成完整服务器、业务集成、EINTR 注入或多连接公平性验收。
+
+## 2026-10-10：L07 内存序补充
+
+atomic_observe 新增 release_acquire、acq_rel_relay；ordering 另对比 release-store/acquire-load。
+配套 [内存序分阶段说明](07_atomic_publish/EXERCISES.md)、
+memory_order_exercises.hpp 与 memory_order_exercises_test.cpp。
+
+- 观察八组在 Debug、ASan/UBSan、TSan 全部通过；TSan 使用 setarch x86_64 -R，无竞态报告。
+- 新练习在上述三种配置可编译；初始 8 项明确报 TODO，退出 1，无挂死或 sanitizer 报告。
+- Debug CTest atomic_observe 通过；帮助、默认/单项/非法参数、文档链接、编辑器目标、格式已核对。
+
+三线程接力练习和内存序角色选择仍由学员完成。观察频率不代表所有合法执行，
+TSan 结果不能替代每个普通字段的 happens-before 证明。原有 atomic_publication.hpp 未改动。

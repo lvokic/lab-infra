@@ -78,6 +78,7 @@ function(add_learner_exercise target source)
 endfunction()
 add_learner_exercise(bounded_queue_test labs/06_bounded_queue/bounded_queue_test.cpp)
 add_learner_exercise(atomic_publication_test labs/07_atomic_publish/atomic_publication_test.cpp)
+add_learner_exercise(memory_order_exercises_test labs/07_atomic_publish/memory_order_exercises_test.cpp)
 add_learner_exercise(memory_access_test labs/08_os_memory/page_exercises_test.cpp)
 add_learner_exercise(locality_test labs/09_locality/locality_exercises_test.cpp)
 add_learner_exercise(false_sharing_test labs/10_false_sharing/sharing_exercises_test.cpp)
@@ -88,7 +89,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
   add_learner_exercise(epoll_exercises_test labs/12_event_loop/epoll_exercises_test.cpp)
 endif()
 add_custom_target(followup_exercises DEPENDS
-  bounded_queue_test atomic_publication_test memory_access_test locality_test
+  bounded_queue_test atomic_publication_test memory_order_exercises_test memory_access_test locality_test
   false_sharing_test framing_test stream_io_test event_loop_test)
 if(TARGET epoll_exercises_test)
   add_dependencies(followup_exercises epoll_exercises_test)
