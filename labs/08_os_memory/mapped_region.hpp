@@ -8,7 +8,6 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
-// 已完成的系统调用包装；本 lab 的 TODO 位于 page_exercises.hpp。
 inline std::size_t system_page_size() {
   const long result = ::sysconf(_SC_PAGESIZE);
   if (result <= 0)
