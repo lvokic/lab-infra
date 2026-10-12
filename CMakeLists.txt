@@ -69,6 +69,16 @@ add_observation(stream_io labs/11_stream_framing/observe.cpp network)
 # L06-L12: completed observations and separate learner implementations.
 add_observation(atomic_observe labs/07_atomic_publish/observe.cpp concurrency)
 add_observation(memory_observe labs/08_os_memory/observe.cpp memory)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  target_link_libraries(memory_observe PRIVATE ${CMAKE_DL_LIBS})
+  # Compare object sections, final ELF layout and the runtime load bias in L08.
+  target_link_options(memory_observe PRIVATE
+    "LINKER:-Map,${CMAKE_CURRENT_BINARY_DIR}/memory_observe.link.map")
+  foreach(experiment IN ITEMS layout elf heap stack holes)
+    add_test(NAME memory_${experiment} COMMAND memory_observe --${experiment})
+    set_tests_properties(memory_${experiment} PROPERTIES TIMEOUT 10 LABELS memory)
+  endforeach()
+endif()
 add_observation(locality_observe labs/09_locality/observe.cpp performance)
 add_observation(false_sharing_observe labs/10_false_sharing/observe.cpp performance)
 add_observation(poll_readiness labs/12_event_loop/observe.cpp network)
