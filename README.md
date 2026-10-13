@@ -8,14 +8,17 @@
 |---|---|
 | [四周计划](docs/PLAN.md) | 100 小时预算、20 个学习单元、优先级、提前面试压缩方案 |
 | [视频与材料](docs/RESOURCES.md) | 指定视频/章节、看什么、对应实验、时间预算 |
-| [12 个实验](labs/README.md) | API 契约、练习步骤、边界验证、面试追问 |
-| [L06–L12 动手路线](labs/TRAINING.md) | 从观察进入独立实现，分阶段检查、运行超时和测量限制 |
+| [12 个主线实验与 2 个专项](labs/README.md) | API 契约、练习步骤、边界验证、面试追问 |
+| [L06–L14 动手路线](labs/TRAINING.md) | 从观察进入独立实现，分阶段检查、运行超时和测量限制 |
 | [本机 STL 源码地图](docs/STL_SOURCE_MAP.md) | Xcode SDK 的 vector、智能指针、哈希表、树阅读入口 |
-| [面试自测](docs/INTERVIEW.md) | 46 个机制问题及追问、三条综合模拟链 |
+| [面试自测](docs/INTERVIEW.md) | 基础与专项机制问题及追问、三条综合模拟链 |
 | [进度与错题](docs/PROGRESS.md) | 实际用时、0–3 分自测、间隔复习 |
 | [实验记录模板](docs/EXPERIMENT_TEMPLATE.md) | 预测、证据、反例、口述与重测 |
 
 优先完成生命周期/所有权、vector、mutex/CV 和有界队列；然后练虚拟内存/cache 和 TCP framing/背压。算法每周保留 2 小时限时复测。建议顺序和调整规则以四周计划为准；资料是定点输入，无需通看整门课程。
+
+新增 [L13 无锁 CAS/SPSC](labs/13_lockfree/README.md) 是 L07/L10 后的并发专项；
+[L14 查询 DSL](labs/14_domain_query/README.md) 是 L09 后连接列式查询项目的选做项。每项约 5h，另计时间；两项都提供观察、TODO 脚手架、独立检查和学员计时入口。
 
 ## 在当前 Linux 环境运行
 
@@ -46,6 +49,8 @@ ctest --preset debug
 | locality_observe | [L09/observe.cpp](labs/09_locality/observe.cpp) | 数据访问与测量起点 |
 | false_sharing_observe | [L10/observe.cpp](labs/10_false_sharing/observe.cpp) | 共享关系、布局和计数 |
 | poll_readiness | [L12/observe.cpp](labs/12_event_loop/observe.cpp) | 非阻塞就绪、部分发送和半关闭 |
+| lockfree_observe | [L13/observe.cpp](labs/13_lockfree/observe.cpp) | 原子属性、CAS 失败、自旋锁进展、整数 ABA |
+| domain_query_observe | [L14/observe.cpp](labs/14_domain_query/observe.cpp) | 查询阶段、行列布局和尾批，标准算法基线 |
 | scratch | [scratch/main.cpp](scratch/main.cpp) | 你自己的新实验；不计入 CTest |
 
 每个观察程序内有 require 检查，Release 下仍有效。它们验证特定语义路径，不代替学习任务中的边界测试或并发证明。2026-09-30 本机验证：Debug 和 Release 构建成功，各自 4/4 项 CTest 通过；VS Code JSON、目标选项和本地文档链接检查通过。本次未操作 VS Code GUI 验证 F5。
@@ -59,7 +64,7 @@ ctest --preset debug
 5. 用 Terminal → Run Task → CMake: Test Debug 跑已完成的观察检查；Run a systems experiment 可直接选目标运行。未实现的练习检查按各 lab 命令单独运行，可能报 TODO 或挂死；终端的外部超时更适合第一次检查等待协议。
 6. 将实现和边界验证加入自己的实验，填记录模板；48 小时后闭卷重答。
 
-L06–L12 的目标已接入 CMake 和编辑器选择列表。你另建已完成的观察目标时，使用 add_observation；尚含 TODO 的练习使用 add_learner_exercise，不直接加入默认 CTest。也可以先使用 scratch，具体步骤见 [实验索引](labs/README.md)。
+L06–L14 的目标已接入 CMake 和编辑器选择列表。你另建已完成的观察目标时，使用 add_observation；尚含 TODO 的练习使用 add_learner_exercise，不直接加入默认 CTest。也可以先使用 scratch，具体步骤见 [实验索引](labs/README.md)。
 
 ## C++ 代码格式
 

@@ -239,4 +239,5 @@ RelayPublication 和 OneShotPublication，并解释原子操作中的内存序�
 没有 TSan 报告，也不能代替每个普通字段的 happens-before 证明。
 
 完成本节基础后进入 [L08](../08_os_memory/README.md)。
-SPSC ring buffer、atomic wait/notify 和可重复发布另作扩展，先写生命周期与退出契约。
+CAS 重试与 SPSC ring buffer 的专项脚手架见 [L13](../13_lockfree/README.md)，先写生命周期与退出契约。
+atomic wait/notify 和可重复发布仍另作扩展。

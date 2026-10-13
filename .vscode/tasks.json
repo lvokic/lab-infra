@@ -156,7 +156,13 @@
         "poll_readiness",
         "memory_benchmark",
         "locality_benchmark",
-        "false_sharing_benchmark"
+        "false_sharing_benchmark",
+        "lockfree_observe",
+        "lockfree_exercises_test",
+        "lockfree_benchmark",
+        "domain_query_observe",
+        "domain_query_test",
+        "domain_query_benchmark"
       ],
       "default": "scratch"
     }

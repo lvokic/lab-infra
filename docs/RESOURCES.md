@@ -129,6 +129,21 @@ C++ 工作草案的公开 HTML：
 
 官方上游 [LLVM libc++ include](https://github.com/llvm/llvm-project/tree/main/libcxx/include)可作对照。上游 main 与 Apple SDK 版本可能不同；本机观测以 SDK 头文件为准。暂时不深入宏、debug iterator/allocator 的所有分支。
 
+## R16｜无锁基础：CAS/SPSC 专项
+
+[Boost.Lockfree Introduction](https://www.boost.org/doc/libs/latest/doc/html/lockfree.html) 定点看进展术语、原子与分配的限制；
+[C++ atomic operations](https://eel.is/c++draft/atomics.types.operations) 核对 expected 与 weak/strong；
+[Boost SPSC 契约](https://www.boost.org/doc/libs/latest/doc/html/doxygen/classboost_1_1lockfree_1_1spsc__queue.html) 核对生产者/消费者限制。
+对应 [L13](../labs/13_lockfree/README.md)，先读接口并自己推演，再在完成后比较源码。材料 35min，专项约 5h，另计；不要求先写 MPMC 或动态节点回收。
+
+## R17｜领域专用查询：DSL 与执行路径
+
+[Fowler DSL](https://martinfowler.com/bliki/DomainSpecificLanguage.html) 看内部/外部 DSL 的区别；
+[LLVM Lexer](https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/LangImpl01.html) 与 [Parser/AST](https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/LangImpl02.html) 只看分层思想；
+[DuckDB Execution Format](https://duckdb.org/docs/current/internals/vector) 看列向量和批次如何交给算子。
+对应 [L14](../labs/14_domain_query/README.md)，将查询文本、计划和行/列访问连接到 CXL/DiSPQ 项目。
+材料 25min，项目选做约 5h，另计；不通读编译器教程，也不引入 LLVM 依赖。
+
 ## 不增加资源时怎样补弱项
 
 - 不懂虚表：回到 R01 + L01 的布局和调用链，不新增一门语言课。

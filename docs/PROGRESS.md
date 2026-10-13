@@ -27,6 +27,8 @@
 - [ ] L10 false sharing 与实验控制（3h）
 - [ ] L11 字节流、framing、TCP loopback（5h）
 - [ ] L12 nonblocking/poll/背压（4h）
+- [ ] L13 CAS 有界额度、SPSC 与进展说明（专项 5h，另计）
+- [ ] L14 查询 DSL、计划与列式批处理（项目选做 5h，另计）
 
 ## 评分
 
@@ -41,6 +43,8 @@
 | hash/tree/容器取舍 | | | | |
 | mutex/CV/队列关闭 | | | | |
 | atomic/happens-before | | | | |
+| lock-free/CAS/SPSC（专项） | | | | |
+| 查询 DSL/执行计划（项目选做） | | | | |
 | 进程/线程/VM/TLB | | | | |
 | cache/false sharing/测量 | | | | |
 | TCP/framing/nonblocking/背压 | | | | |

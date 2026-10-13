@@ -1,6 +1,6 @@
-# 实验目录：12 个任务，约 48 小时
+# 实验目录：12 个主线任务（约 48 小时）与 2 个专项
 
-每个目录的 README 都含材料、步骤、验收和追问。已完成的观察程序运行于 CTest；学员练习提供接口、TODO 和独立检查，核心实现由你完成。L06–L12 的统一训练方式见 [从观察进入独立实现](TRAINING.md)。每项还需填写 [实验记录](../docs/EXPERIMENT_TEMPLATE.md)。
+每个目录的 README 都含材料、步骤、验收和追问。已完成的观察程序运行于 CTest；学员练习提供接口、TODO 和独立检查，核心实现由你完成。L06–L14 的统一训练方式见 [从观察进入独立实现](TRAINING.md)。每项还需填写 [实验记录](../docs/EXPERIMENT_TEMPLATE.md)。
 
 | ID | 主题 | 预算 | 当前代码 |
 |---|---|---:|---|
@@ -16,6 +16,10 @@
 | [L10](10_false_sharing/README.md) | 共享、对齐、一致性与测量 | 3h | false_sharing_observe；false_sharing_test；false_sharing_benchmark 测量你的布局与计数 |
 | [L11](11_stream_framing/README.md) | 部分 I/O、framing、TCP loopback | 5h | stream_io；framing_test、stream_io_test 检查解析及真实 socket 传输 |
 | [L12](12_event_loop/README.md) | nonblocking、poll/epoll、背压 | poll 4h；epoll 3–4h；综合扩展另计 | poll_readiness；event_loop_test；[epoll 专项脚手架与 22 项检查](12_event_loop/EPOLL_EXERCISES.md) |
+| [L13](13_lockfree/README.md) | lock-free、CAS、SPSC、ABA 概念 | 专项 5h | lockfree_observe；四个 TODO；lockfree_exercises_test 的 16 项检查；lockfree_benchmark |
+| [L14](14_domain_query/README.md) | 查询 DSL、计划、过滤聚合、列式批处理 | 项目选做 5h | domain_query_observe；五个 TODO；domain_query_test 的 15 项检查；domain_query_benchmark |
+
+L13 在 L07/L10 后安排；L14 在 L09 后作为查询项目拓展。主线继续推进 L11/L12，不要求先完成两个专项。新增时间不计入原主线预算。
 
 上述脚手架目标已经接入构建；未完成练习不加入默认 CTest。可以先查看检查名称：
 

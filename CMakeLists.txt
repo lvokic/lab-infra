@@ -111,6 +111,16 @@ add_learner_exercise(false_sharing_benchmark labs/10_false_sharing/benchmark.cpp
 add_custom_target(followup_benchmarks DEPENDS
   memory_benchmark locality_benchmark false_sharing_benchmark)
 
+# Optional interview/project extensions; learner TODOs remain outside CTest.
+add_observation(lockfree_observe labs/13_lockfree/observe.cpp concurrency)
+add_learner_exercise(lockfree_exercises_test labs/13_lockfree/lockfree_exercises_test.cpp)
+add_learner_exercise(lockfree_benchmark labs/13_lockfree/benchmark.cpp)
+add_observation(domain_query_observe labs/14_domain_query/observe.cpp cpp)
+add_learner_exercise(domain_query_test labs/14_domain_query/query_exercises_test.cpp)
+add_learner_exercise(domain_query_benchmark labs/14_domain_query/benchmark.cpp)
+add_custom_target(extension_exercises DEPENDS lockfree_exercises_test domain_query_test)
+add_custom_target(extension_benchmarks DEPENDS lockfree_benchmark domain_query_benchmark)
+
 # The ownership test is an executable; the learner implements UniquePtr in
 # observer.cpp and uses this test to check ownership and lifetime behavior.
 add_observation(unique_ownership_test labs/02_ownership/test.cpp cpp)
