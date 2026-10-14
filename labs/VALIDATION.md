@@ -73,3 +73,17 @@ memory_order_exercises.hpp 与 memory_order_exercises_test.cpp。
 
 三线程接力练习和内存序角色选择仍由学员完成。观察频率不代表所有合法执行，
 TSan 结果不能替代每个普通字段的 happens-before 证明。原有 atomic_publication.hpp 未改动。
+
+## 2026-10-13：L13 lock-free 与 L14 查询 DSL 专项
+
+新增 [L13 CAS/SPSC](13_lockfree/README.md) 与 [L14 查询 DSL](14_domain_query/README.md)，
+各约 5h，作为原有主线之外的专项和项目选做。观察程序、TODO 脚手架、独立检查、计时入口
+已接入 CMake；练习目标不进入默认 CTest。
+
+- Debug、ASan/UBSan、Release 下六个新目标均构建成功，无编译警告；两个观察目标在三种配置下均通过 CTest，共 7 个观察 case。
+- L13 的四个观察 case 在 TSan 下通过；运行时需要 `setarch x86_64 -R` 规避本机 ThreadSanitizer 地址映射冲突。
+- 初始检查覆盖 L13 的 16 项和 L14 的 15 项；CLI 参数、帮助、超时行为、VS Code JSON、格式和补丁空白均已核对。
+- transfer driver 另以临时 mutex/deque 队列检查正常传输、错误注入后的取消和异常传播，在 ASan/UBSan 与 TSan 下通过。临时队列未加入项目，也没有代替学员实现 SPSC。
+
+九个核心接口仍是 TODO；因此上述通过结果只适用于观察程序、transfer driver 与基础设施，
+不代表 lock-free 算法、解析器或查询执行器已经由学员实现并通过。计时入口需要完成 TODO 后才能运行。

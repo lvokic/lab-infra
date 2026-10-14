@@ -91,7 +91,6 @@ add_learner_exercise(atomic_publication_test labs/07_atomic_publish/atomic_publi
 add_learner_exercise(memory_order_exercises_test labs/07_atomic_publish/memory_order_exercises_test.cpp)
 add_learner_exercise(memory_access_test labs/08_os_memory/page_exercises_test.cpp)
 add_learner_exercise(locality_test labs/09_locality/locality_exercises_test.cpp)
-add_learner_exercise(false_sharing_test labs/10_false_sharing/sharing_exercises_test.cpp)
 add_learner_exercise(framing_test labs/11_stream_framing/frame_decoder_test.cpp)
 add_learner_exercise(stream_io_test labs/11_stream_framing/stream_io_test.cpp)
 add_learner_exercise(event_loop_test labs/12_event_loop/event_loop_test.cpp)
