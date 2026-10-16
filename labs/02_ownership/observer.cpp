@@ -1,6 +1,7 @@
 // 手写单类型 UniquePtr / SharedPtr / WeakPtr 学习实验。
 #include <atomic>
 #include <cstddef>
+#include <stdexcept>
 #include <utility>
 
 struct Tracked {
@@ -24,43 +25,36 @@ public:
   UniquePtr() = default;
 
   template <typename... Args>
-  static UniquePtr<T> make(Args&&... args) {
-    return UniquePtr<T>(new T(std::forward<Args>(args)...));
+  static UniquePtr<T> make(Args&&... /*args*/) {
+    throw std::logic_error("TODO: UniquePtr::make");
   }
 
   UniquePtr(const UniquePtr& other) = delete;
   UniquePtr& operator=(const UniquePtr& other) = delete;
 
-  UniquePtr(UniquePtr&& other) noexcept {
-    delete ptr_;
-    ptr_ = other.ptr_;
-    other.ptr_ = nullptr;
+  UniquePtr(UniquePtr&& /*other*/) noexcept {
+    // TODO：移动所有权，并将源指针置空。
   }
 
-  UniquePtr& operator=(UniquePtr&& other) noexcept {
-    delete ptr_;
-    ptr_ = other.ptr_;
-    other.ptr_ = nullptr;
+  UniquePtr& operator=(UniquePtr&& /*other*/) noexcept {
+    // TODO：释放当前对象并接管源对象；处理自移动。
     return *this;
   }
 
-  ~UniquePtr() {
-    delete ptr_;
-  }
+  ~UniquePtr() { /* TODO：删除当前拥有的对象。 */ }
 
   T* get() const noexcept {
-    return ptr_;
+    // TODO：返回被管理对象的借用指针。
+    return nullptr;
   }
 
   void reset() noexcept {
-    delete ptr_;
-    ptr_ = nullptr;
+    // TODO：释放当前对象并置空。
   }
 
   T* release() noexcept {
-    T* raw = ptr_;
-    ptr_ = nullptr;
-    return raw;
+    // TODO：放弃所有权并返回原指针。
+    return nullptr;
   }
 };
 
@@ -79,8 +73,7 @@ struct ControlBlock final : ControlBlockBase {
   explicit ControlBlock(U* ptr) noexcept : object(ptr) {}
 
   void destroy_object() noexcept override {
-    delete object;
-    object = nullptr;
+    // TODO：销毁被管理对象。
   }
 };
 
@@ -97,81 +90,60 @@ private:
 
   struct AdoptStrongRef {};
 
-  explicit SharedPtr(T* ptr) {
-    cb_ = new ControlBlock<T>(ptr);
+  explicit SharedPtr(T* /*ptr*/) {
+    // TODO：创建控制块并接管对象。
   }
 
   // lock() uses this after it has already incremented strong.
-  SharedPtr(ControlBlock<T>* block, AdoptStrongRef) noexcept : cb_(block) {}
+  SharedPtr(ControlBlock<T>* /*block*/, AdoptStrongRef) noexcept {
+    // TODO：接管已经增加强引用计数的控制块。
+  }
 
   void release() noexcept {
-    auto* block = std::exchange(cb_, nullptr);
-    if (block == nullptr)
-      return;
-
-    if (block->strong.fetch_sub(1) == 1) {
-      block->destroy_object();
-      if (block->weak.fetch_sub(1) == 1) {
-        delete block;
-      }
-    }
+    // TODO：递减强引用计数，并在最后一个 owner 离开时清理对象和控制块。
   }
 
 public:
   SharedPtr() = default;
 
-  ~SharedPtr() {
-    release();
-  }
+  ~SharedPtr() { /* TODO：释放一个共享 owner。 */ }
 
   template <typename... Args>
-  static SharedPtr<T> make(Args&&... args) {
-    T* object = new T(std::forward<Args>(args)...);
-    try {
-      return SharedPtr<T>(object);
-    } catch (...) {
-      delete object;
-      throw;
-    }
+  static SharedPtr<T> make(Args&&... /*args*/) {
+    throw std::logic_error("TODO: SharedPtr::make");
   }
 
-  SharedPtr(const SharedPtr& other) noexcept : cb_(other.cb_) {
-    if (cb_ != nullptr)
-      cb_->strong.fetch_add(1);
+  SharedPtr(const SharedPtr& /*other*/) noexcept {
+    // TODO：复制共享 owner 并增加强引用计数。
   }
 
-  SharedPtr& operator=(const SharedPtr& other) noexcept {
-    if (this == &other)
-      return *this;
-
-    auto* next = other.cb_;
-    if (next != nullptr)
-      next->strong.fetch_add(1);
-    release();
-    cb_ = next;
+  SharedPtr& operator=(const SharedPtr& /*other*/) noexcept {
+    // TODO：处理自赋值、旧 owner 和新 owner。
     return *this;
   }
 
-  SharedPtr(SharedPtr&& other) noexcept : cb_(std::exchange(other.cb_, nullptr)) {}
+  SharedPtr(SharedPtr&& /*other*/) noexcept {
+    // TODO：移动共享 owner，不改变强引用总数。
+  }
 
-  SharedPtr& operator=(SharedPtr&& other) noexcept {
-    if (this == &other)
-      return *this;
-    release();
-    cb_ = std::exchange(other.cb_, nullptr);
+  SharedPtr& operator=(SharedPtr&& /*other*/) noexcept {
+    // TODO：释放当前 owner 后移动接管；处理自移动。
     return *this;
   }
 
   T* get() const noexcept {
-    return cb_ ? cb_->object : nullptr;
+    // TODO：返回被管理对象的借用指针。
+    return nullptr;
   }
 
   std::size_t use_count() const noexcept {
-    return cb_ ? cb_->strong.load() : std::size_t{0};
+    // TODO：返回强引用计数。
+    return 0;
   }
 
   explicit operator bool() const noexcept {
-    return get() != nullptr;
+    // TODO：判断是否持有对象。
+    return false;
   }
 };
 
@@ -181,83 +153,57 @@ private:
   ControlBlock<T>* cb_ = nullptr;
 
   void release() noexcept {
-    auto* block = std::exchange(cb_, nullptr);
-    if (block != nullptr && block->weak.fetch_sub(1) == 1) {
-      delete block;
-    }
+    // TODO：释放一个弱观察者，并在控制块不再需要时销毁它。
   }
 
 public:
   WeakPtr() = default;
 
-  ~WeakPtr() {
-    release();
+  ~WeakPtr() { /* TODO：释放一个弱观察者。 */ }
+
+  WeakPtr(const SharedPtr<T>& /*owner*/) noexcept {
+    // TODO：从共享 owner 建立弱观察，并增加弱引用计数。
   }
 
-  WeakPtr(const SharedPtr<T>& owner) noexcept : cb_(owner.cb_) {
-    if (cb_ != nullptr)
-      cb_->weak.fetch_add(1);
-  }
-
-  WeakPtr& operator=(const SharedPtr<T>& owner) noexcept {
-    auto* next = owner.cb_;
-    if (next != nullptr)
-      next->weak.fetch_add(1);
-    release();
-    cb_ = next;
+  WeakPtr& operator=(const SharedPtr<T>& /*owner*/) noexcept {
+    // TODO：替换弱观察关系。
     return *this;
   }
 
-  WeakPtr(const WeakPtr& other) noexcept : cb_(other.cb_) {
-    if (cb_ != nullptr)
-      cb_->weak.fetch_add(1);
+  WeakPtr(const WeakPtr& /*other*/) noexcept {
+    // TODO：复制弱观察关系并增加弱引用计数。
   }
 
-  WeakPtr& operator=(const WeakPtr& other) noexcept {
-    if (this == &other)
-      return *this;
-
-    auto* next = other.cb_;
-    if (next != nullptr)
-      next->weak.fetch_add(1);
-    release();
-    cb_ = next;
+  WeakPtr& operator=(const WeakPtr& /*other*/) noexcept {
+    // TODO：处理自赋值并替换弱观察关系。
     return *this;
   }
 
-  WeakPtr(WeakPtr&& other) noexcept : cb_(std::exchange(other.cb_, nullptr)) {}
+  WeakPtr(WeakPtr&& /*other*/) noexcept {
+    // TODO：移动弱观察关系，不改变弱引用总数。
+  }
 
-  WeakPtr& operator=(WeakPtr&& other) noexcept {
-    if (this == &other)
-      return *this;
-    release();
-    cb_ = std::exchange(other.cb_, nullptr);
+  WeakPtr& operator=(WeakPtr&& /*other*/) noexcept {
+    // TODO：移动替换弱观察关系；处理自移动。
     return *this;
   }
 
   void reset() noexcept {
-    release();
+    // TODO：释放弱观察关系。
   }
 
   std::size_t use_count() const noexcept {
-    return cb_ ? cb_->strong.load() : std::size_t{0};
+    // TODO：返回被观察对象的强引用数。
+    return 0;
   }
 
   bool expired() const noexcept {
-    return use_count() == 0;
+    // TODO：判断强引用数是否为零。
+    return true;
   }
 
   SharedPtr<T> lock() const noexcept {
-    auto* block = cb_;
-    if (block == nullptr)
-      return {};
-
-    auto count = block->strong.load();
-    while (count != 0) {
-      if (block->strong.compare_exchange_weak(count, count + 1)) {
-        return SharedPtr<T>(block, typename SharedPtr<T>::AdoptStrongRef{});
-      }
-    }
+    // TODO：原子地尝试增加强引用数；失败时返回空 SharedPtr。
     return {};
   }
 };

@@ -12,8 +12,7 @@ class BoundedQueue {
 public:
   // TODO：拒绝 capacity == 0，抛 std::invalid_argument。
   explicit BoundedQueue(std::size_t capacity) : capacity_(capacity) {
-    if (capacity == 0)
-      throw std::invalid_argument("capacity can not be zero");
+    throw std::logic_error("TODO: BoundedQueue::constructor");
   }
 
   BoundedQueue(const BoundedQueue&) = delete;
@@ -22,40 +21,19 @@ public:
   // TODO：满且开放时等待；关闭后返回 false，不插入 value。
   // 成功插入队尾时返回 true，并让消费者有机会重新检查状态。
   bool push(int value) {
-    {
-      std::unique_lock<std::mutex> lock(mutex_);
-      not_full_.wait(lock, [&] {
-        return elements_.size() < capacity_ || closed_;
-      });
-      if (closed_)
-        return false;
-      elements_.push_back(value);
-    }
-    not_empty_.notify_one();
-    return true;
+    static_cast<void>(value);
+    throw std::logic_error("TODO: BoundedQueue::push");
   }
 
   // TODO：空且开放时等待；有元素时取出队首。
   // 关闭后仍排空已有元素；关闭且空时返回 std::nullopt。
   std::optional<int> pop() {
-    std::unique_lock<std::mutex> lock(mutex_);
-    not_empty_.wait(lock, [&] {
-      return elements_.size() > 0 || closed_;
-    });
-    if (elements_.size() == 0)
-      return std::nullopt;
-    int value = elements_.front();
-    elements_.pop_front();
-    not_full_.notify_one();
-    return std::make_optional(value);
+    throw std::logic_error("TODO: BoundedQueue::pop");
   }
 
   // TODO：永久关闭，可重复调用；生产者与消费者等待者都应能退出。
   void close() {
-    std::unique_lock<std::mutex> lock(mutex_);
-    closed_ = true;
-    not_empty_.notify_all();
-    not_full_.notify_all();
+    throw std::logic_error("TODO: BoundedQueue::close");
   }
 
 private:

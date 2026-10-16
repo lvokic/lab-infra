@@ -4,6 +4,7 @@
 #include <iostream>
 #include <memory>
 #include <random>
+#include <stdexcept>
 #include <string_view>
 #include <type_traits>
 #include <utility>
@@ -15,114 +16,65 @@ public:
   MiniVector() noexcept = default;
 
   ~MiniVector() noexcept {
-    releaseStorage();
+    // TODO：销毁活元素并释放所拥有的存储。
   }
 
   MiniVector(const MiniVector&) = delete;
   MiniVector& operator=(const MiniVector&) = delete;
 
   // TODO：转交资源；本练习约定普通移动后源为空。
-  MiniVector(MiniVector&& other) noexcept {
-    allocator_ = other.allocator_;
-    data_ = other.data_;
-    size_ = other.size_;
-    capacity_ = other.capacity_;
-    other.data_ = nullptr;
-    other.size_ = 0;
-    other.capacity_ = 0;
+  MiniVector(MiniVector&& /*other*/) noexcept {
+    // TODO：转交资源，并将源对象置空。
   }
 
   // TODO：替换已有资源；自移动保留自身内容；返回当前对象的引用。
-  MiniVector& operator=(MiniVector&& other) noexcept {
-    if (this == &other)
-      return *this;
-    releaseStorage();
-    allocator_ = other.allocator_;
-    data_ = other.data_;
-    size_ = other.size_;
-    capacity_ = other.capacity_;
-    other.data_ = nullptr;
-    other.size_ = 0;
-    other.capacity_ = 0;
+  MiniVector& operator=(MiniVector&& /*other*/) noexcept {
+    // TODO：先处理当前资源，再转交资源；自移动保留自身内容。
     return *this;
   }
 
   // TODO：只查询状态，不改变元素或存储。
   std::size_t size() const noexcept {
-    return size_;
+    return 0;
   }
 
   std::size_t capacity() const noexcept {
-    return capacity_;
+    return 0;
   }
 
   // TODO：容量至少为 n；size 与已有元素内容不变。
   // n 不超过当前容量时状态不变；支持的类型范围内提供强异常保证。
-  void reserve(std::size_t n) {
-    if (n <= capacity_)
-      return;
-    T* new_data = allocator_.allocate(n);
-    std::size_t constructed = 0;
-    try {
-      for (; constructed < size_; ++constructed) {
-        std::construct_at(new_data + constructed, std::move_if_noexcept(data_[constructed]));
-      }
-    } catch (...) {
-      // 失败的槽位没有活对象，只销毁已经成功构造的前缀。
-      std::destroy_n(new_data, constructed);
-      allocator_.deallocate(new_data, n);
-      throw;
-    }
-    const auto old_size = size_;
-    releaseStorage();
-    capacity_ = n;
-    data_ = new_data;
-    size_ = old_size;
+  void reserve(std::size_t /*n*/) {
+    throw std::logic_error("TODO: MiniVector::reserve");
   }
 
   // 基线约定：追加参数不得引用本容器中的元素。
   // 新元素构造失败时大小和原元素不变，但 reserve 可能已经增大容量。
-  void push_back(const T& value) {
-    if (size_ == capacity_) {
-      reserve(capacity_ == 0 ? 1 : capacity_ * 2);
-    }
-    std::construct_at(data_ + size_, value);
-    ++size_;
+  void push_back(const T& /*value*/) {
+    throw std::logic_error("TODO: MiniVector::push_back copy");
   }
 
-  void push_back(T&& value) {
-    if (size_ == capacity_) {
-      reserve(capacity_ == 0 ? 1 : capacity_ * 2);
-    }
-    std::construct_at(data_ + size_, std::move(value));
-    ++size_;
+  void push_back(T&& /*value*/) {
+    throw std::logic_error("TODO: MiniVector::push_back move");
   }
 
   // TODO：结束所有活元素的生命周期，保留容量。
-  void clear() noexcept {
-    for (size_t i = 0; i < size_; ++i) {
-      std::destroy_at(data_ + i);
-    }
-    size_ = 0;
+  void clear() {
+    throw std::logic_error("TODO: MiniVector::clear");
   }
 
   // TODO：访问已有元素；调用方保证 index < size，不进行自动扩容。
-  T& operator[](std::size_t index) noexcept {
-    return *(data_ + index);
+  T& operator[](std::size_t /*index*/) {
+    throw std::logic_error("TODO: MiniVector::operator[]");
   }
 
-  const T& operator[](std::size_t index) const noexcept {
-    return *(data_ + index);
+  const T& operator[](std::size_t /*index*/) const {
+    throw std::logic_error("TODO: MiniVector::operator[] const");
   }
 
 private:
   void releaseStorage() noexcept {
-    clear();
-    if (data_ != nullptr) {
-      allocator_.deallocate(data_, capacity_);
-    }
-    data_ = nullptr;
-    capacity_ = 0;
+    // TODO：释放活元素与存储，并将指针和容量复位。
   }
 
   // 分配器管理存储；本练习不实现自定义 allocator 传播。

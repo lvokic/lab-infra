@@ -28,110 +28,66 @@ public:
 
   // TODO：N=0 时 data/begin/end 都返回 nullptr，不能对空指针做加法。
   T* data() {
-    if constexpr (N == 0) {
-      return nullptr;
-    } else {
-      return storage_.elements;
-    }
+    throw std::logic_error("TODO: MiniArray::data");
   }
 
   const T* data() const {
-    if constexpr (N == 0) {
-      return nullptr;
-    } else {
-      return storage_.elements;
-    }
+    throw std::logic_error("TODO: MiniArray::data const");
   }
 
   iterator begin() {
-    if constexpr (N == 0) {
-      return nullptr;
-    } else {
-      return storage_.elements;
-    }
+    throw std::logic_error("TODO: MiniArray::begin");
   }
 
   iterator end() {
-    if constexpr (N == 0) {
-      return nullptr;
-    } else {
-      return storage_.elements + N;
-    }
+    throw std::logic_error("TODO: MiniArray::end");
   }
 
   const_iterator begin() const {
-    if constexpr (N == 0) {
-      return nullptr;
-    } else {
-      return storage_.elements;
-    }
+    throw std::logic_error("TODO: MiniArray::begin const");
   }
 
   const_iterator end() const {
-    if constexpr (N == 0) {
-      return nullptr;
-    } else {
-      return storage_.elements + N;
-    }
+    throw std::logic_error("TODO: MiniArray::end const");
   }
 
   T& operator[](std::size_t index) {
-    return at(index);
+    static_cast<void>(index);
+    throw std::logic_error("TODO: MiniArray::operator[]");
   }
 
   const T& operator[](std::size_t index) const {
-    return at(index);
+    static_cast<void>(index);
+    throw std::logic_error("TODO: MiniArray::operator[] const");
   }
 
   // TODO：at 越界，或者 N=0 时 front/back，均抛 out_of_range。
-  T& at(std::size_t index) {
-    if constexpr (N == 0) {
-      throw std::out_of_range("MiniArray index out of range");
-    } else {
-      if (index >= N)
-        throw std::out_of_range("MiniArray index out of range");
-      return *(storage_.elements + index);
-    }
+  T& at(std::size_t /*index*/) {
+    throw std::logic_error("TODO: MiniArray::at");
   }
 
-  const T& at(std::size_t index) const {
-    if constexpr (N == 0) {
-      throw std::out_of_range("MiniArray index out of range");
-    } else {
-      if (index >= N)
-        throw std::out_of_range("MiniArray index out of range");
-      return *(storage_.elements + index);
-    }
+  const T& at(std::size_t /*index*/) const {
+    throw std::logic_error("TODO: MiniArray::at const");
   }
 
   T& front() {
-    if constexpr (N == 0)
-      throw std::out_of_range("MiniArray index out of range");
-    return *begin();
+    throw std::logic_error("TODO: MiniArray::front");
   }
 
   const T& front() const {
-    if constexpr (N == 0)
-      throw std::out_of_range("MiniArray index out of range");
-    return *begin();
+    throw std::logic_error("TODO: MiniArray::front const");
   }
 
   T& back() {
-    if constexpr (N == 0)
-      throw std::out_of_range("MiniArray index out of range");
-    return *(end() - 1);
+    throw std::logic_error("TODO: MiniArray::back");
   }
 
   const T& back() const {
-    if constexpr (N == 0)
-      throw std::out_of_range("MiniArray index out of range");
-    return *(end() - 1);
+    throw std::logic_error("TODO: MiniArray::back const");
   }
 
-  void fill(const T& value) {
-    for (std::size_t i = 0; i < N; ++i) {
-      at(i) = value;
-    }
+  void fill(const T& /*value*/) {
+    throw std::logic_error("TODO: MiniArray::fill");
   }
 
 private:

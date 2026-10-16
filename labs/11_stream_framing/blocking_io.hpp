@@ -37,19 +37,9 @@ private:
 // 本练习在 Linux 上用 MSG_NOSIGNAL 避免断开时 SIGPIPE 终止进程。
 // fd 的所有权属于调用者；本函数不 close，不支持 nonblocking fd。
 inline void send_all(int fd, std::span<const std::uint8_t> bytes) {
-  std::size_t offset = 0;
-  while (offset < bytes.size()) {
-    const std::size_t remaining = bytes.size() - offset;
-    const auto sent = ::send(fd, bytes.data() + offset, remaining, MSG_NOSIGNAL);
-    if (sent < 0) {
-      if (errno == EINTR)
-        continue;
-      throw std::system_error(errno, std::generic_category(), "send");
-    }
-    if (sent == 0)
-      throw std::runtime_error("send returned 0 before all bytes were sent");
-    offset += static_cast<std::size_t>(sent);
-  }
+  static_cast<void>(fd);
+  static_cast<void>(bytes);
+  throw std::logic_error("TODO: stream_lab::send_all");
 }
 
 }
