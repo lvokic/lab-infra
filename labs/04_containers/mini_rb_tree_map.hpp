@@ -335,25 +335,6 @@ private:
     return node;
   }
 
-  std::pair<Node*, Node*> next_nodes(Node* root) {
-    Node* prev = root;
-    Node* node = root->right;
-    while (node->left != &nil_) {
-      prev = node;
-      node = node->left;
-    }
-    node->right->parent = prev;
-    if (prev == root) {
-      prev->right = node->right;
-    } else {
-      prev->left = node->right;
-    }
-    node->left = &nil_;
-    node->right = &nil_;
-    node->parent = &nil_;
-    return {node, prev == root ? prev->right : prev->left};
-  }
-
   void iterate(Node* node, std::vector<std::pair<int, std::string>>& res) const {
     if (node == &nil_)
       return;
